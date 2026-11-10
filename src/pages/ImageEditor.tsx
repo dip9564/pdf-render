@@ -807,23 +807,23 @@ export default function ImageEditor() {
             </Button>
           </div>
 
-          {/* Image preview area (responsive height: h-[210px] on mobile, min-h-[420px] on desktop) */}
+          {/* Image preview area (responsive height: h-[310px] on mobile, min-h-[440px] on desktop) */}
           <div className={cn('grid gap-3 sm:gap-4', showComparison ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
             {showComparison && (
-              <div className="rounded-lg border bg-muted/30 p-2 sm:p-4 flex items-center justify-center overflow-hidden h-[200px] sm:h-[300px] lg:h-auto lg:min-h-[420px]">
+              <div className="rounded-lg border bg-muted/30 p-2 sm:p-4 flex items-center justify-center overflow-hidden h-[260px] sm:h-[340px] lg:h-auto lg:min-h-[440px]">
                 <div className="text-center w-full h-full flex flex-col items-center justify-center">
                   <p className="text-xs text-muted-foreground mb-1 font-medium">Original</p>
                   <img
                     src={originalDataUrl}
                     alt="Original"
-                    className="max-w-full max-h-[175px] sm:max-h-[260px] lg:max-h-[60vh] object-contain rounded"
+                    className="max-w-full max-h-[235px] sm:max-h-[300px] lg:max-h-[60vh] object-contain rounded"
                   />
                 </div>
               </div>
             )}
             <div
               ref={imageContainerRef}
-              className="relative rounded-lg border bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/20px_20px] dark:bg-[repeating-conic-gradient(#374151_0%_25%,transparent_0%_50%)_0_0/20px_20px] p-2 sm:p-4 flex items-center justify-center overflow-hidden h-[210px] sm:h-[300px] lg:h-auto lg:min-h-[420px] select-none touch-none"
+              className="relative rounded-lg border bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/20px_20px] dark:bg-[repeating-conic-gradient(#374151_0%_25%,transparent_0%_50%)_0_0/20px_20px] p-2 sm:p-4 flex items-center justify-center overflow-hidden h-[310px] sm:h-[360px] lg:h-auto lg:min-h-[440px] select-none touch-none"
               onMouseDown={handleCropMouseDown}
               onTouchStart={handleCropTouchStart}
               style={{
@@ -835,7 +835,7 @@ export default function ImageEditor() {
                 src={originalDataUrl}
                 alt="Editing"
                 onLoad={handleImageLoad}
-                className="max-w-full max-h-[190px] sm:max-h-[280px] lg:max-h-[60vh] object-contain rounded"
+                className="max-w-full max-h-[290px] sm:max-h-[340px] lg:max-h-[60vh] object-contain rounded"
                 style={{
                   filter: getCssFilter(),
                   transform: getCssTransform(),

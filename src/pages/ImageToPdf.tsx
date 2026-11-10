@@ -993,13 +993,13 @@ export default function ImageToPdf() {
         <div
           className={cn(
             'flex items-center justify-center bg-muted/30 border rounded-lg overflow-hidden select-none',
-            isMobile ? 'p-2 h-[190px]' : 'p-3 sm:p-4 min-h-[360px]'
+            isMobile ? 'p-2.5 h-[285px] sm:h-[310px]' : 'p-3 sm:p-4 min-h-[360px]'
           )}
         >
           <div
             className={cn(
               'relative shadow-md rounded border overflow-hidden transition-all duration-150 flex items-center justify-center',
-              isMobile ? 'h-full max-h-[175px] max-w-full' : 'max-w-full max-h-[460px]'
+              isMobile ? 'h-full max-h-[270px] max-w-full shadow-lg' : 'max-w-full max-h-[460px]'
             )}
             style={{
               backgroundColor: bgColor,
