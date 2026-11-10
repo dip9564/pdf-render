@@ -13,6 +13,8 @@ import {
   RefreshCw,
   FileText,
   FileCheck,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { formatFileSize, readFileAsArrayBuffer, downloadBlob, createPdfBlob } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -170,6 +172,17 @@ export default function OrganizePdf() {
       return next;
     });
     setDraggedIndex(null);
+  };
+
+  const movePage = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= pages.length) return;
+    setPages((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
+    });
   };
 
   // Selection toggle
@@ -394,17 +407,43 @@ export default function OrganizePdf() {
                             : 'border-border hover:border-cyan-300'
                         }`}
                       >
-                        {/* Drag Handle & Page Indicator */}
+                        {/* Drag Handle, Mobile Reorder & Page Indicator */}
                         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5 px-0.5">
-                          <div className="flex items-center gap-1 cursor-grab active:cursor-grabbing">
-                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60" />
-                            <span className="font-semibold text-foreground">#{index + 1}</span>
+                          <div className="flex items-center gap-0.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground touch-manipulation sm:hidden"
+                              disabled={index === 0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                movePage(index, 'left');
+                              }}
+                              title="Move Left"
+                            >
+                              <ChevronLeft className="h-3 w-3" />
+                            </Button>
+                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 hidden sm:block cursor-grab active:cursor-grabbing" />
+                            <span className="font-semibold text-foreground text-[11px] sm:text-xs">#{index + 1}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground touch-manipulation sm:hidden"
+                              disabled={index === pages.length - 1}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                movePage(index, 'right');
+                              }}
+                              title="Move Right"
+                            >
+                              <ChevronRight className="h-3 w-3" />
+                            </Button>
                           </div>
                           <input
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelect(item.id)}
-                            className="rounded border-input text-cyan-600 focus:ring-cyan-500 cursor-pointer h-3.5 w-3.5"
+                            className="rounded border-input text-cyan-600 focus:ring-cyan-500 cursor-pointer h-4 w-4 touch-manipulation"
                           />
                         </div>
 

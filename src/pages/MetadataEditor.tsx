@@ -176,16 +176,16 @@ export default function MetadataEditor() {
         <div className="space-y-6">
           {/* File summary */}
           <Card>
-            <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
+            <CardContent className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-500/10 text-slate-700 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-lg bg-slate-500/10 text-slate-700 flex items-center justify-center font-bold shrink-0">
                   PDF
                 </div>
-                <div>
-                  <h3 className="font-semibold text-sm sm:text-base truncate max-w-sm sm:max-w-md">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-sm sm:text-base truncate">
                     {file.name}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                     <span>{formatFileSize(file.size)}</span>
                     <span>•</span>
                     <Badge variant="secondary" className="text-xs">
@@ -195,9 +195,9 @@ export default function MetadataEditor() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={loading || saving}>
-                  <RefreshCw className="h-4 w-4 mr-1.5" />
+              <div className="flex items-center gap-2 shrink-0">
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={loading || saving} className="w-full sm:w-auto text-xs">
+                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
                   Choose Another File
                 </Button>
               </div>

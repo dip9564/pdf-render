@@ -128,19 +128,19 @@ export default function HomePage() {
       </div>
 
       {/* Tools Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
         {tools.map((tool) => (
-          <Link key={tool.path} to={tool.path}>
-            <Card className={`h-full transition-all duration-200 hover:shadow-md ${tool.borderColor} group`}>
-              <CardContent className="p-5">
+          <Link key={tool.path} to={tool.path} className="touch-manipulation">
+            <Card className={`h-full transition-all duration-200 hover:shadow-md active:scale-[0.98] ${tool.borderColor} group`}>
+              <CardContent className="p-4 sm:p-5">
                 <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg ${tool.color} mb-3`}>
                   <tool.icon className="h-5 w-5" />
                 </div>
-                <h3 className="font-semibold mb-1 flex items-center gap-1">
-                  {tool.label}
-                  <ArrowRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+                <h3 className="font-semibold text-base mb-1 flex items-center justify-between">
+                  <span>{tool.label}</span>
+                  <ArrowRight className="h-4 w-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
                 </h3>
-                <p className="text-sm text-muted-foreground">{tool.description}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">{tool.description}</p>
               </CardContent>
             </Card>
           </Link>
@@ -148,29 +148,29 @@ export default function HomePage() {
       </div>
 
       {/* How It Works */}
-      <div className="mt-20 text-center">
-        <h2 className="text-2xl font-bold mb-8">How It Works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
+      <div className="mt-16 sm:mt-20 text-center">
+        <h2 className="text-xl sm:text-2xl font-bold mb-8">How It Works</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-3xl mx-auto">
           <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-bold mb-3">
+            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-bold mb-2.5">
               1
             </div>
-            <h3 className="font-semibold mb-1">Choose a Tool</h3>
-            <p className="text-sm text-muted-foreground">Select from 11+ PDF tools above</p>
+            <h3 className="font-semibold text-sm sm:text-base mb-1">Choose a Tool</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">Select from the free PDF tools above</p>
           </div>
           <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-bold mb-3">
+            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-bold mb-2.5">
               2
             </div>
-            <h3 className="font-semibold mb-1">Upload & Edit</h3>
-            <p className="text-sm text-muted-foreground">Drag & drop your files and customize</p>
+            <h3 className="font-semibold text-sm sm:text-base mb-1">Upload & Edit</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">Drop your files and customize in browser</p>
           </div>
           <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-lg font-bold mb-3">
+            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-bold mb-2.5">
               3
             </div>
-            <h3 className="font-semibold mb-1">Download</h3>
-            <p className="text-sm text-muted-foreground">Get your processed files instantly</p>
+            <h3 className="font-semibold text-sm sm:text-base mb-1">Download</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">Get your processed PDF instantly</p>
           </div>
         </div>
       </div>

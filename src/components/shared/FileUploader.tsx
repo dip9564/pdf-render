@@ -104,10 +104,10 @@ export function FileUploader({
     <div className={cn('space-y-4', className)}>
       <div
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-8 transition-colors cursor-pointer',
+          'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 sm:p-8 transition-all cursor-pointer text-center touch-manipulation active:scale-[0.99]',
           isDragging
             ? 'border-primary bg-primary/5'
-            : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
+            : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 active:bg-muted/60'
         )}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -123,10 +123,10 @@ export function FileUploader({
           onChange={handleFileChange}
           className="hidden"
         />
-        <Upload className={cn('h-10 w-10 mb-4', isDragging ? 'text-primary' : 'text-muted-foreground')} />
-        <p className="text-sm font-medium">{label}</p>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        <p className="text-xs text-muted-foreground mt-1">
+        <Upload className={cn('h-8 w-8 sm:h-10 sm:w-10 mb-3', isDragging ? 'text-primary' : 'text-muted-foreground')} />
+        <p className="text-sm sm:text-base font-semibold text-foreground">{label}</p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-sm">{description}</p>
+        <p className="text-[11px] text-muted-foreground mt-1">
           Max {formatFileSize(maxSize)} per file
           {multiple && ` · Up to ${maxFiles} files`}
         </p>
@@ -134,17 +134,17 @@ export function FileUploader({
 
       {showFileList && files.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">
+          <p className="text-xs sm:text-sm font-medium text-muted-foreground">
             {files.length} file{files.length !== 1 ? 's' : ''} selected
           </p>
-          <div className="space-y-1">
+          <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
             {files.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}
-                className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm"
+                className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs sm:text-sm"
               >
                 <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="truncate flex-1">{file.name}</span>
+                <span className="truncate flex-1 font-medium">{file.name}</span>
                 <span className="text-xs text-muted-foreground shrink-0">
                   {formatFileSize(file.size)}
                 </span>
@@ -152,13 +152,13 @@ export function FileUploader({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 shrink-0"
+                    className="h-8 w-8 shrink-0 touch-manipulation text-muted-foreground hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       onRemoveFile(index);
                     }}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>

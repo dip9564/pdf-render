@@ -526,7 +526,7 @@ export default function ImageEditor() {
           </div>
 
           {/* Image preview area */}
-          <div className={cn('grid gap-4', showComparison ? 'grid-cols-2' : 'grid-cols-1')}>
+          <div className={cn('grid gap-4', showComparison ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
             {showComparison && (
               <div className="rounded-lg border bg-muted/30 p-4 flex items-center justify-center overflow-hidden">
                 <div className="text-center">

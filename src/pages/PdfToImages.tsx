@@ -279,17 +279,17 @@ export default function PdfToImages() {
               </div>
 
               {/* Page Selection Bar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t">
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={selectAll}>
-                    <CheckSquare className="h-4 w-4 mr-1" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={selectAll} className="text-xs">
+                    <CheckSquare className="h-3.5 w-3.5 mr-1" />
                     Select All
                   </Button>
-                  <Button variant="outline" size="sm" onClick={deselectAll}>
-                    <Square className="h-4 w-4 mr-1" />
+                  <Button variant="outline" size="sm" onClick={deselectAll} className="text-xs">
+                    <Square className="h-3.5 w-3.5 mr-1" />
                     Clear
                   </Button>
-                  <span className="text-xs text-muted-foreground ml-2">
+                  <span className="text-xs text-muted-foreground ml-1">
                     {selectedCount} of {pageCount} selected
                   </span>
                 </div>
@@ -297,7 +297,7 @@ export default function PdfToImages() {
                 <Button
                   onClick={handleConvert}
                   disabled={converting || selectedCount === 0}
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                  className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm"
                 >
                   {converting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />

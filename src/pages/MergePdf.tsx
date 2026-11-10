@@ -227,6 +227,15 @@ export default function MergePdf() {
     [dragIndex]
   );
 
+  const movePdf = (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= pdfs.length) return;
+    const reordered = [...pdfs];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+    setPdfs(reordered);
+  };
+
   const mergePdfs = useCallback(async () => {
     if (pdfs.length === 0) {
       toast.error('Please add at least one PDF');
@@ -315,13 +324,13 @@ export default function MergePdf() {
 
       {pdfs.length > 0 && (
         <div className="mt-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold">Uploaded PDFs</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base sm:text-lg font-semibold">Uploaded PDFs</h2>
               <Badge variant="secondary">{pdfs.length} files</Badge>
               <Badge variant="outline">{selectedPagesCount}/{totalPages} pages selected</Badge>
             </div>
-            <Button onClick={mergePdfs} disabled={merging || selectedPagesCount === 0}>
+            <Button onClick={mergePdfs} disabled={merging || selectedPagesCount === 0} className="w-full sm:w-auto">
               {merging ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -354,10 +363,36 @@ export default function MergePdf() {
                 onDrop={(e) => handleDrop(e, index)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    {/* Drag handle */}
-                    <div className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground">
-                      <GripVertical className="h-5 w-5" />
+                  <div className="flex items-center gap-3">
+                    {/* Reorder Up/Down arrows for mobile + drag handle for desktop */}
+                    <div className="flex flex-col items-center justify-center shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground touch-manipulation"
+                        disabled={index === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          movePdf(index, 'up');
+                        }}
+                        title="Move Up"
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 hidden sm:block cursor-grab active:cursor-grabbing" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground touch-manipulation"
+                        disabled={index === pdfs.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          movePdf(index, 'down');
+                        }}
+                        title="Move Down"
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
 
                     {/* Thumbnail */}

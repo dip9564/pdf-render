@@ -300,18 +300,18 @@ export default function SplitPdf() {
 
           {/* Splitting Modes */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="extract" className="flex items-center gap-2">
-                <FileCheck className="h-4 w-4" />
-                <span className="hidden sm:inline">Extract</span> Selected Pages
+            <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted/70">
+              <TabsTrigger value="extract" className="flex items-center justify-center gap-1.5 py-2 px-1 text-xs sm:text-sm">
+                <FileCheck className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Selected Pages</span>
               </TabsTrigger>
-              <TabsTrigger value="all" className="flex items-center gap-2">
-                <Layers className="h-4 w-4" />
-                Split Every Page
+              <TabsTrigger value="all" className="flex items-center justify-center gap-1.5 py-2 px-1 text-xs sm:text-sm">
+                <Layers className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">All Pages</span>
               </TabsTrigger>
-              <TabsTrigger value="ranges" className="flex items-center gap-2">
-                <Scissors className="h-4 w-4" />
-                Custom Ranges
+              <TabsTrigger value="ranges" className="flex items-center justify-center gap-1.5 py-2 px-1 text-xs sm:text-sm">
+                <Scissors className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Page Ranges</span>
               </TabsTrigger>
             </TabsList>
 
@@ -319,26 +319,26 @@ export default function SplitPdf() {
             <TabsContent value="extract" className="space-y-4 mt-4">
               <Card>
                 <CardHeader className="pb-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <CardTitle className="text-lg">Select Pages to Extract</CardTitle>
-                      <CardDescription>
-                        Click on thumbnails to select pages. Selected pages will be combined into a new single PDF.
+                      <CardTitle className="text-base sm:text-lg">Select Pages to Extract</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">
+                        Click thumbnails to select pages. Selected pages will be combined into a new single PDF.
                       </CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={selectAll}>
-                        <CheckSquare className="h-4 w-4 mr-1" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={selectAll} className="text-xs">
+                        <CheckSquare className="h-3.5 w-3.5 mr-1" />
                         Select All
                       </Button>
-                      <Button variant="outline" size="sm" onClick={deselectAll}>
-                        <Square className="h-4 w-4 mr-1" />
+                      <Button variant="outline" size="sm" onClick={deselectAll} className="text-xs">
+                        <Square className="h-3.5 w-3.5 mr-1" />
                         Clear
                       </Button>
                       <Button
                         onClick={handleExtractSelected}
                         disabled={selectedCount === 0 || processing}
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm"
                       >
                         {processing ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
