@@ -412,42 +412,41 @@ export default function MergePdf() {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{pdf.file.name}</p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {pdf.pageCount} page{pdf.pageCount !== 1 ? 's' : ''}
+                      <p className="font-medium text-xs sm:text-sm truncate">{pdf.file.name}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-0.5">
+                        <span className="text-[11px] sm:text-xs text-muted-foreground whitespace-nowrap">
+                          {pdf.pageCount} page{pdf.pageCount !== 1 ? 's' : ''} • {formatFileSize(pdf.file.size)}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatFileSize(pdf.file.size)}
-                        </span>
-                        <Badge variant="outline" className="text-xs">
-                          {pdf.selectedPages.filter(Boolean).length}/{pdf.pageCount} selected
-                        </Badge>
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <Button
-                        variant="ghost"
+                        variant={pdf.showPageSelector ? 'secondary' : 'outline'}
                         size="sm"
                         onClick={() => togglePageSelector(pdf.id)}
-                        className="text-xs"
+                        className="h-7 text-xs px-2 gap-1 touch-manipulation font-normal border-primary/30"
+                        title="Click to select specific pages to merge"
                       >
+                        <span className="font-semibold text-primary">
+                          {pdf.selectedPages.filter(Boolean).length}/{pdf.pageCount}
+                        </span>
+                        <span className="hidden sm:inline text-muted-foreground">pages</span>
                         {pdf.showPageSelector ? (
-                          <ChevronUp className="mr-1 h-3 w-3" />
+                          <ChevronUp className="h-3 w-3 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="mr-1 h-3 w-3" />
+                          <ChevronDown className="h-3 w-3 text-muted-foreground" />
                         )}
-                        Select Pages
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removePdf(pdf.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Remove PDF"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>

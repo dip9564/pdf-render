@@ -31,7 +31,8 @@ export function usePdfRenderer() {
   const renderAllPages = useCallback(
     async (
       pdfData: ArrayBuffer | Uint8Array,
-      scale: number = 1.0
+      scale: number = 1.0,
+      onProgress?: (current: number, total: number, pageDataUrl: string) => void
     ): Promise<string[]> => {
       const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
       const pages: string[] = [];
@@ -46,7 +47,15 @@ export function usePdfRenderer() {
         canvas.height = viewport.height;
 
         await page.render({ canvasContext: context, viewport }).promise;
-        pages.push(canvas.toDataURL('image/png'));
+        const dataUrl = canvas.toDataURL('image/png');
+        pages.push(dataUrl);
+
+        if (onProgress) {
+          onProgress(i, pdf.numPages, dataUrl);
+        }
+
+        // Yield to the browser main thread to keep UI smooth and responsive
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
 
       pdf.destroy();

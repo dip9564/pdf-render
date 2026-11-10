@@ -21,8 +21,13 @@ import {
   RefreshCw,
   Bold,
   Italic,
+  Bookmark,
+  Plus,
+  Upload,
+  Eraser,
+  Check,
 } from 'lucide-react';
-import { formatFileSize, readFileAsArrayBuffer, downloadBlob, createPdfBlob } from '@/lib/utils';
+import { formatFileSize, readFileAsArrayBuffer, downloadBlob, createPdfBlob, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,10 +35,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { FileUploader } from '@/components/shared/FileUploader';
 import { usePdfRenderer } from '@/components/shared/PdfRenderer';
 
-type ToolType = 'select' | 'text' | 'highlight' | 'pen' | 'rect' | 'circle' | 'arrow' | 'signature';
+type ToolType = 'select' | 'text' | 'highlight' | 'pen' | 'rect' | 'circle' | 'arrow' | 'signature' | 'signature_stamp';
+
+export interface SavedSignature {
+  id: string;
+  name: string;
+  dataUrl: string;
+  createdAt: number;
+}
 
 interface Point {
   x: number;
@@ -58,6 +78,7 @@ interface Annotation {
   fontSize?: number;
   isBold?: boolean;
   isItalic?: boolean;
+  imageData?: string;
 }
 
 function getAnnotationBounds(
@@ -130,6 +151,20 @@ function getAnnotationBounds(
     };
   }
 
+  if (ann.type === 'signature_stamp') {
+    const x = ann.x || 0;
+    const y = ann.y || 0;
+    const w = ann.width || 160;
+    const h = ann.height || 80;
+    const pad = 6 + extraPad;
+    return {
+      minX: x - pad,
+      minY: y - pad,
+      maxX: x + w + pad,
+      maxY: y + h + pad,
+    };
+  }
+
   return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 }
 
@@ -167,7 +202,71 @@ export default function AnnotatePdf() {
   const [dragStartPoint, setDragStartPoint] = useState<Point | null>(null);
   const [dragAnnotationStart, setDragAnnotationStart] = useState<Annotation | null>(null);
 
+  // Signature Vault State
+  const [isVaultOpen, setIsVaultOpen] = useState<boolean>(false);
+  const [savedSignatures, setSavedSignatures] = useState<SavedSignature[]>(() => {
+    try {
+      const saved = localStorage.getItem('pdf_saved_signatures');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageCacheRef = useRef<Record<string, HTMLImageElement>>({});
+
+  const saveSignatureToStorage = (newSig: SavedSignature) => {
+    setSavedSignatures((prev) => {
+      const updated = [newSig, ...prev];
+      try {
+        localStorage.setItem('pdf_saved_signatures', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Storage error', e);
+      }
+      return updated;
+    });
+  };
+
+  const deleteSignatureFromStorage = (id: string) => {
+    setSavedSignatures((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
+      try {
+        localStorage.setItem('pdf_saved_signatures', JSON.stringify(updated));
+      } catch (e) {
+        console.error('Storage error', e);
+      }
+      return updated;
+    });
+    toast.info('Signature deleted from vault');
+  };
+
+  const handleInsertSignatureFromVault = (sigDataUrl: string) => {
+    const canvas = canvasRef.current;
+    const w = 170;
+    const h = 85;
+    const x = canvas ? Math.max(20, Math.round((canvas.width - w) / 2)) : 100;
+    const y = canvas ? Math.max(20, Math.round((canvas.height - h) / 2)) : 100;
+
+    const newAnn: Annotation = {
+      id: `ann-${Date.now()}`,
+      pageIndex: currentPage - 1,
+      type: 'signature_stamp',
+      color: '#1e3a8a',
+      strokeWidth: 2,
+      x,
+      y,
+      width: w,
+      height: h,
+      imageData: sigDataUrl,
+    };
+
+    addAnnotation(newAnn);
+    setActiveTool('select');
+    setSelectedId(newAnn.id);
+    setIsVaultOpen(false);
+    toast.success('Signature placed on document! Drag to reposition.');
+  };
   const containerRef = useRef<HTMLDivElement>(null);
 
   const annotationsRef = useRef(annotations);
@@ -345,6 +444,23 @@ export default function AnnotatePdf() {
             if (ann.isBold) fontStyle += 'bold ';
             ctx.font = `${fontStyle}${ann.fontSize || 20}px sans-serif`;
             ctx.fillText(ann.text, ann.x, ann.y);
+          }
+          break;
+
+        case 'signature_stamp':
+          if (ann.imageData && ann.x !== undefined && ann.y !== undefined) {
+            const w = ann.width || 160;
+            const h = ann.height || 80;
+            let img = imageCacheRef.current[ann.imageData];
+            if (!img) {
+              img = new Image();
+              img.src = ann.imageData;
+              imageCacheRef.current[ann.imageData] = img;
+              img.onload = () => redrawCanvas();
+            }
+            if (img.complete && img.naturalWidth > 0) {
+              ctx.drawImage(img, ann.x, ann.y, w, h);
+            }
           }
           break;
       }
@@ -797,6 +913,22 @@ export default function AnnotatePdf() {
                 ctx.fillText(ann.text, ann.x, ann.y);
               }
               break;
+            case 'signature_stamp':
+              if (ann.imageData && ann.x !== undefined && ann.y !== undefined) {
+                const w = ann.width || 160;
+                const h = ann.height || 80;
+                const stampImg = new Image();
+                stampImg.src = ann.imageData;
+                await new Promise((res) => {
+                  if (stampImg.complete) res(null);
+                  else {
+                    stampImg.onload = () => res(null);
+                    stampImg.onerror = () => res(null);
+                  }
+                });
+                ctx.drawImage(stampImg, ann.x, ann.y, w, h);
+              }
+              break;
           }
           ctx.restore();
         }
@@ -985,6 +1117,16 @@ export default function AnnotatePdf() {
                 >
                   <FileSignature className="h-3.5 w-3.5 mr-1" />
                   Sign
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2.5 text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 bg-indigo-500/5 hover:bg-indigo-500/10 shrink-0"
+                  onClick={() => setIsVaultOpen(true)}
+                  title="Open Saved Signature Vault"
+                >
+                  <Bookmark className="h-3.5 w-3.5 mr-1" />
+                  Vault {savedSignatures.length > 0 && `(${savedSignatures.length})`}
                 </Button>
               </div>
 
@@ -1205,6 +1347,402 @@ export default function AnnotatePdf() {
           </div>
         </div>
       )}
+
+      {/* Signature Vault Modal */}
+      <SignatureVaultModal
+        open={isVaultOpen}
+        onOpenChange={setIsVaultOpen}
+        onInsertSignature={handleInsertSignatureFromVault}
+        savedSignatures={savedSignatures}
+        onSaveSignature={saveSignatureToStorage}
+        onDeleteSignature={deleteSignatureFromStorage}
+      />
     </div>
+  );
+}
+
+interface SignatureVaultModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onInsertSignature: (dataUrl: string) => void;
+  savedSignatures: SavedSignature[];
+  onSaveSignature: (sig: SavedSignature) => void;
+  onDeleteSignature: (id: string) => void;
+}
+
+function SignatureVaultModal({
+  open,
+  onOpenChange,
+  onInsertSignature,
+  savedSignatures,
+  onSaveSignature,
+  onDeleteSignature,
+}: SignatureVaultModalProps) {
+  const [tab, setTab] = useState<'saved' | 'draw' | 'upload'>('saved');
+  const [sigName, setSigName] = useState<string>('My Signature');
+  const [inkColor, setInkColor] = useState<string>('#0f172a');
+  const [isDrawing, setIsDrawing] = useState<boolean>(false);
+  const padRef = useRef<HTMLCanvasElement>(null);
+  const [padHasStrokes, setPadHasStrokes] = useState<boolean>(false);
+
+  // Setup drawing canvas
+  useEffect(() => {
+    if (tab === 'draw' && padRef.current) {
+      const canvas = padRef.current;
+      canvas.width = 460;
+      canvas.height = 180;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      setPadHasStrokes(false);
+    }
+  }, [tab, open]);
+
+  const clearPad = () => {
+    const canvas = padRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setPadHasStrokes(false);
+  };
+
+  const getPadCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = padRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    let clientX = 0;
+    let clientY = 0;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = padRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const pos = getPadCoordinates(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    ctx.strokeStyle = inkColor;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    setIsDrawing(true);
+    setPadHasStrokes(true);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const canvas = padRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const pos = getPadCoordinates(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const handleSaveAndUseDrawn = () => {
+    const canvas = padRef.current;
+    if (!canvas || !padHasStrokes) {
+      toast.warning('Please draw your signature first');
+      return;
+    }
+
+    const dataUrl = canvas.toDataURL('image/png');
+    const newSig: SavedSignature = {
+      id: `sig-${Date.now()}`,
+      name: sigName.trim() || 'My Signature',
+      dataUrl,
+      createdAt: Date.now(),
+    };
+
+    onSaveSignature(newSig);
+    onInsertSignature(dataUrl);
+    toast.success('Signature saved to vault and dropped onto document!');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        // Convert white background to transparent
+        const off = document.createElement('canvas');
+        off.width = img.width;
+        off.height = img.height;
+        const ctx = off.getContext('2d')!;
+        ctx.drawImage(img, 0, 0);
+
+        const imgData = ctx.getImageData(0, 0, off.width, off.height);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const r = d[i];
+          const g = d[i + 1];
+          const b = d[i + 2];
+          if (r > 215 && g > 215 && b > 215) {
+            d[i + 3] = 0; // make white transparent
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        const transparentDataUrl = off.toDataURL('image/png');
+        const newSig: SavedSignature = {
+          id: `sig-${Date.now()}`,
+          name: sigName.trim() || file.name.replace(/\.[^/.]+$/, ''),
+          dataUrl: transparentDataUrl,
+          createdAt: Date.now(),
+        };
+
+        onSaveSignature(newSig);
+        onInsertSignature(transparentDataUrl);
+        toast.success('Signature image saved & placed on document!');
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <Bookmark className="h-5 w-5 text-indigo-500" />
+            <DialogTitle className="text-base sm:text-lg">Signature Vault</DialogTitle>
+          </div>
+          <DialogDescription className="text-xs">
+            Save reusable signatures once. Insert onto any page with one tap.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-lg text-xs font-medium mb-3">
+          <button
+            type="button"
+            onClick={() => setTab('saved')}
+            className={cn(
+              'py-1.5 rounded-md transition-all text-center',
+              tab === 'saved' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+            )}
+          >
+            Vault ({savedSignatures.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('draw')}
+            className={cn(
+              'py-1.5 rounded-md transition-all text-center',
+              tab === 'draw' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+            )}
+          >
+            Draw New
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('upload')}
+            className={cn(
+              'py-1.5 rounded-md transition-all text-center',
+              tab === 'upload' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+            )}
+          >
+            Upload
+          </button>
+        </div>
+
+        {tab === 'saved' && (
+          <div className="space-y-3">
+            {savedSignatures.length === 0 ? (
+              <div className="py-8 text-center text-muted-foreground space-y-2 border border-dashed rounded-lg">
+                <Bookmark className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                <p className="text-xs font-medium">No saved signatures yet</p>
+                <p className="text-[11px] text-muted-foreground px-4">
+                  Draw or upload your signature to save it securely in your browser vault.
+                </p>
+                <Button size="sm" variant="outline" onClick={() => setTab('draw')} className="h-7 text-xs">
+                  Draw Signature Now
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[260px] overflow-y-auto pr-1">
+                {savedSignatures.map((sig) => (
+                  <div
+                    key={sig.id}
+                    className="flex items-center justify-between p-2.5 rounded-lg border bg-card hover:border-indigo-500/40 transition-all gap-2"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-16 h-10 border rounded bg-white p-1 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                        <img src={sig.dataUrl} alt={sig.name} className="w-full h-full object-contain" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold truncate">{sig.name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(sig.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => onInsertSignature(sig.dataUrl)}
+                        className="h-7 text-xs px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                      >
+                        Drop on PDF
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDeleteSignature(sig.id)}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'draw' && (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <Label className="text-xs">Signature Name</Label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">Ink:</span>
+                  {[
+                    { color: '#0f172a', title: 'Black' },
+                    { color: '#1e3a8a', title: 'Navy' },
+                    { color: '#2563eb', title: 'Blue' },
+                    { color: '#b91c1c', title: 'Red' },
+                  ].map((c) => (
+                    <button
+                      key={c.color}
+                      type="button"
+                      onClick={() => setInkColor(c.color)}
+                      style={{ backgroundColor: c.color }}
+                      className={cn(
+                        'w-4 h-4 rounded-full border transition-all',
+                        inkColor === c.color ? 'ring-2 ring-primary ring-offset-1 scale-110' : ''
+                      )}
+                      title={c.title}
+                    />
+                  ))}
+                </div>
+              </div>
+              <Input
+                value={sigName}
+                onChange={(e) => setSigName(e.target.value)}
+                placeholder="e.g. Primary Signature"
+                className="h-8 text-xs"
+              />
+            </div>
+
+            {/* Drawing Pad Canvas */}
+            <div className="border-2 border-dashed border-border rounded-lg bg-white overflow-hidden relative shadow-xs">
+              <canvas
+                ref={padRef}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                onTouchStart={startDrawing}
+                onTouchMove={draw}
+                onTouchEnd={stopDrawing}
+                className="w-full h-36 block select-none cursor-crosshair touch-none"
+              />
+              <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={clearPad}
+                  className="h-6 text-[10px] px-2 bg-white/90 shadow-xs"
+                >
+                  <Eraser className="h-3 w-3 mr-1" />
+                  Clear Pad
+                </Button>
+              </div>
+              {!padHasStrokes && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-muted-foreground/40 text-xs">
+                  Sign with finger or stylus here
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="button"
+              onClick={handleSaveAndUseDrawn}
+              disabled={!padHasStrokes}
+              className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+            >
+              <Check className="h-3.5 w-3.5 mr-1" />
+              Save to Vault & Drop on PDF
+            </Button>
+          </div>
+        )}
+
+        {tab === 'upload' && (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Signature Name</Label>
+              <Input
+                value={sigName}
+                onChange={(e) => setSigName(e.target.value)}
+                placeholder="e.g. Scanned Signature"
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <div className="border-2 border-dashed rounded-lg p-6 text-center space-y-2 bg-muted/10">
+              <Upload className="h-8 w-8 mx-auto text-indigo-500" />
+              <p className="text-xs font-medium">Upload photo or scan of signature</p>
+              <p className="text-[10px] text-muted-foreground">
+                Automatic white-background removal makes it look like real transparent ink.
+              </p>
+              <label className="inline-block cursor-pointer">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
+                  Select PNG or JPG
+                </span>
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

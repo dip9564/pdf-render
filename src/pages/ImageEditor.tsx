@@ -23,6 +23,8 @@ import {
   X,
   Move,
   Upload,
+  SlidersHorizontal,
+  Settings2,
 } from 'lucide-react';
 
 interface Adjustments {
@@ -68,6 +70,7 @@ export default function ImageEditor() {
   const [isExporting, setIsExporting] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [imageNaturalSize, setImageNaturalSize] = useState({ width: 0, height: 0 });
+  const [mobileTab, setMobileTab] = useState<'adjust' | 'transform'>('adjust');
 
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const previewImageRef = useRef<HTMLImageElement>(null);
@@ -242,14 +245,30 @@ export default function ImageEditor() {
     };
   };
 
+  const handleCropTouchStart = (e: React.TouchEvent) => {
+    if (!isCropping || !cropRect || !imageContainerRef.current || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const containerRect = imageContainerRef.current.getBoundingClientRect();
+    const mx = touch.clientX - containerRect.left;
+    const my = touch.clientY - containerRect.top;
+    const handle = getHandleAtPosition(mx, my, cropRect);
+    if (!handle) return;
+    cropDragRef.current = {
+      handle,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startRect: { ...cropRect },
+    };
+  };
+
   useEffect(() => {
     if (!isCropping) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (clientX: number, clientY: number) => {
       if (!cropDragRef.current || !cropRect) return;
       const { handle, startX, startY, startRect } = cropDragRef.current;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+      const dx = clientX - startX;
+      const dy = clientY - startY;
       const minSize = 20;
 
       let newRect = { ...startRect };
@@ -298,15 +317,30 @@ export default function ImageEditor() {
       setCropRect(newRect);
     };
 
-    const handleMouseUp = () => {
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleEnd = () => {
       cropDragRef.current = null;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleEnd);
     };
   }, [isCropping, cropRect]);
 
@@ -428,10 +462,258 @@ export default function ImageEditor() {
     move: 'move',
   };
 
+  // Sub-renderers for Adjustments & Transform panels
+  const renderAdjustmentsPanel = (isMobile: boolean) => (
+    <div className={cn('space-y-3', isMobile && 'p-3 rounded-xl border bg-card shadow-xs')}>
+      {!isMobile && <p className="text-sm font-medium">Adjustments</p>}
+
+      {/* Sliders grid */}
+      <div className={cn(isMobile ? 'grid grid-cols-2 gap-2.5' : 'space-y-3')}>
+        {/* Brightness */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px] sm:text-xs">Brightness</Label>
+            <span className="text-[11px] sm:text-xs text-muted-foreground tabular-nums font-mono">
+              {adjustments.brightness > 0 ? `+${adjustments.brightness}` : adjustments.brightness}
+            </span>
+          </div>
+          <Slider
+            min={-100}
+            max={100}
+            step={1}
+            value={[adjustments.brightness]}
+            onValueChange={([v]) => updateAdjustment('brightness', v)}
+          />
+        </div>
+
+        {/* Contrast */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px] sm:text-xs">Contrast</Label>
+            <span className="text-[11px] sm:text-xs text-muted-foreground tabular-nums font-mono">
+              {adjustments.contrast > 0 ? `+${adjustments.contrast}` : adjustments.contrast}
+            </span>
+          </div>
+          <Slider
+            min={-100}
+            max={100}
+            step={1}
+            value={[adjustments.contrast]}
+            onValueChange={([v]) => updateAdjustment('contrast', v)}
+          />
+        </div>
+
+        {/* Saturation */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px] sm:text-xs">Saturation</Label>
+            <span className="text-[11px] sm:text-xs text-muted-foreground tabular-nums font-mono">
+              {adjustments.saturation > 0 ? `+${adjustments.saturation}` : adjustments.saturation}
+            </span>
+          </div>
+          <Slider
+            min={-100}
+            max={100}
+            step={1}
+            value={[adjustments.saturation]}
+            onValueChange={([v]) => updateAdjustment('saturation', v)}
+          />
+        </div>
+
+        {/* Blur */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-[11px] sm:text-xs">Blur</Label>
+            <span className="text-[11px] sm:text-xs text-muted-foreground tabular-nums font-mono">
+              {adjustments.blur}px
+            </span>
+          </div>
+          <Slider
+            min={0}
+            max={20}
+            step={0.5}
+            value={[adjustments.blur]}
+            onValueChange={([v]) => updateAdjustment('blur', v)}
+          />
+        </div>
+      </div>
+
+      <div className="h-px bg-border my-2" />
+
+      {/* Filters (Grayscale, Sepia) */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Switch
+            id={isMobile ? 'm-grayscale' : 'grayscale-switch'}
+            checked={adjustments.grayscale}
+            onCheckedChange={(v) => updateAdjustment('grayscale', v)}
+          />
+          <Label htmlFor={isMobile ? 'm-grayscale' : 'grayscale-switch'} className="text-xs cursor-pointer">
+            Grayscale
+          </Label>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Switch
+            id={isMobile ? 'm-sepia' : 'sepia-switch'}
+            checked={adjustments.sepia}
+            onCheckedChange={(v) => updateAdjustment('sepia', v)}
+          />
+          <Label htmlFor={isMobile ? 'm-sepia' : 'sepia-switch'} className="text-xs cursor-pointer">
+            Sepia
+          </Label>
+        </div>
+
+        {isMobile && (
+          <Button variant="ghost" size="sm" onClick={resetAll} className="h-7 text-xs text-muted-foreground px-2 ml-auto">
+            <Undo2 className="h-3 w-3 mr-1" />
+            Reset
+          </Button>
+        )}
+      </div>
+
+      {isMobile && (
+        <Button
+          size="sm"
+          onClick={exportImage}
+          disabled={isExporting}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white h-9 text-xs font-medium mt-2"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              Exporting PNG...
+            </>
+          ) : (
+            <>
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Download PNG
+            </>
+          )}
+        </Button>
+      )}
+    </div>
+  );
+
+  const renderTransformPanel = (isMobile: boolean) => (
+    <div className={cn('space-y-3', isMobile && 'p-3 rounded-xl border bg-card shadow-xs')}>
+      {!isMobile && <p className="text-sm font-medium">Transform</p>}
+
+      <div className="text-xs text-muted-foreground space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span>Rotation:</span>
+          <span className="font-mono text-foreground">{((adjustments.rotation % 360) + 360) % 360}°</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Flip Horizontal:</span>
+          <span className="font-mono text-foreground">{adjustments.flipH ? 'Yes' : 'No'}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Flip Vertical:</span>
+          <span className="font-mono text-foreground">{adjustments.flipV ? 'Yes' : 'No'}</span>
+        </div>
+        {appliedCrop && (
+          <div className="flex items-center justify-between">
+            <span>Crop Area:</span>
+            <span className="font-mono text-foreground">
+              {Math.round(appliedCrop.width)}×{Math.round(appliedCrop.height)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {appliedCrop && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full h-8 text-xs text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+          onClick={() => {
+            setAppliedCrop(null);
+            toast.info('Crop removed');
+          }}
+        >
+          <X className="h-3.5 w-3.5 mr-1.5" />
+          Remove Crop
+        </Button>
+      )}
+
+      <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={resetAll}>
+        <Undo2 className="h-3.5 w-3.5 mr-1.5" />
+        Reset All Adjustments
+      </Button>
+
+      {isMobile && (
+        <Button
+          size="sm"
+          onClick={exportImage}
+          disabled={isExporting}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white h-9 text-xs font-medium mt-1"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              Exporting PNG...
+            </>
+          ) : (
+            <>
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Download PNG
+            </>
+          )}
+        </Button>
+      )}
+    </div>
+  );
+
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-7xl">
+      {/* Mobile Compact Header */}
+      <div className="sm:hidden flex items-center justify-between pb-2 mb-2 border-b">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 shrink-0">
+            <Paintbrush className="h-3.5 w-3.5" />
+          </div>
+          <span className="text-xs font-bold truncate max-w-[130px]">{originalFileName}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-[11px] px-1.5"
+            onClick={() => setOriginalDataUrl(null)}
+            title="Upload another image"
+          >
+            <Upload className="h-3 w-3 mr-0.5" />
+            New
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-[11px] px-1.5"
+            onClick={() => setShowComparison((v) => !v)}
+            title={showComparison ? 'Hide original' : 'Compare with original'}
+          >
+            {showComparison ? (
+              <EyeOff className="h-3 w-3 mr-0.5" />
+            ) : (
+              <SplitSquareHorizontal className="h-3 w-3 mr-0.5" />
+            )}
+            {showComparison ? 'Hide' : 'Compare'}
+          </Button>
+          <Button
+            size="sm"
+            onClick={exportImage}
+            disabled={isExporting}
+            className="h-6 text-[11px] px-2 bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Download className="h-3 w-3 mr-0.5" />
+            Save
+          </Button>
+        </div>
+      </div>
+
+      {/* Desktop Header */}
+      <div className="hidden sm:flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-500/10">
             <Paintbrush className="h-5 w-5 text-purple-500" />
@@ -442,7 +724,7 @@ export default function ImageEditor() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { setOriginalDataUrl(null); }}>
+          <Button variant="outline" size="sm" onClick={() => setOriginalDataUrl(null)}>
             <Upload className="h-3.5 w-3.5 mr-1.5" />
             New Image
           </Button>
@@ -469,11 +751,11 @@ export default function ImageEditor() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Image Canvas Area */}
-        <div className="lg:col-span-3 space-y-4">
-          {/* Toolbar */}
-          <div className="flex items-center gap-1 p-1 rounded-lg border bg-card flex-wrap">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* Image Canvas Column */}
+        <div className="lg:col-span-3 space-y-3 sm:space-y-4">
+          {/* Desktop Toolbar */}
+          <div className="hidden lg:flex items-center gap-1 p-1 rounded-lg border bg-card flex-wrap">
             <Button
               variant={isCropping ? 'default' : 'ghost'}
               size="sm"
@@ -525,24 +807,25 @@ export default function ImageEditor() {
             </Button>
           </div>
 
-          {/* Image preview area */}
-          <div className={cn('grid gap-4', showComparison ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
+          {/* Image preview area (responsive height: h-[210px] on mobile, min-h-[420px] on desktop) */}
+          <div className={cn('grid gap-3 sm:gap-4', showComparison ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1')}>
             {showComparison && (
-              <div className="rounded-lg border bg-muted/30 p-4 flex items-center justify-center overflow-hidden">
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-2 font-medium">Original</p>
+              <div className="rounded-lg border bg-muted/30 p-2 sm:p-4 flex items-center justify-center overflow-hidden h-[200px] sm:h-[300px] lg:h-auto lg:min-h-[420px]">
+                <div className="text-center w-full h-full flex flex-col items-center justify-center">
+                  <p className="text-xs text-muted-foreground mb-1 font-medium">Original</p>
                   <img
                     src={originalDataUrl}
                     alt="Original"
-                    className="max-w-full max-h-[60vh] object-contain rounded"
+                    className="max-w-full max-h-[175px] sm:max-h-[260px] lg:max-h-[60vh] object-contain rounded"
                   />
                 </div>
               </div>
             )}
             <div
               ref={imageContainerRef}
-              className="relative rounded-lg border bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/20px_20px] p-4 flex items-center justify-center overflow-hidden min-h-[400px]"
+              className="relative rounded-lg border bg-[repeating-conic-gradient(#e5e7eb_0%_25%,transparent_0%_50%)_0_0/20px_20px] dark:bg-[repeating-conic-gradient(#374151_0%_25%,transparent_0%_50%)_0_0/20px_20px] p-2 sm:p-4 flex items-center justify-center overflow-hidden h-[210px] sm:h-[300px] lg:h-auto lg:min-h-[420px] select-none touch-none"
               onMouseDown={handleCropMouseDown}
+              onTouchStart={handleCropTouchStart}
               style={{
                 cursor: isCropping && cropRect ? undefined : 'default',
               }}
@@ -552,7 +835,7 @@ export default function ImageEditor() {
                 src={originalDataUrl}
                 alt="Editing"
                 onLoad={handleImageLoad}
-                className="max-w-full max-h-[60vh] object-contain rounded"
+                className="max-w-full max-h-[190px] sm:max-h-[280px] lg:max-h-[60vh] object-contain rounded"
                 style={{
                   filter: getCssFilter(),
                   transform: getCssTransform(),
@@ -615,7 +898,7 @@ export default function ImageEditor() {
                       return (
                         <div
                           key={corner}
-                          className="absolute w-2.5 h-2.5 bg-white border border-gray-400 rounded-sm"
+                          className="absolute w-3 h-3 bg-white border border-gray-400 rounded-xs"
                           style={{
                             ...pos,
                             cursor: cropHandleCursors[corner],
@@ -649,7 +932,7 @@ export default function ImageEditor() {
                       return (
                         <div
                           key={edge}
-                          className="w-2 h-2 bg-white border border-gray-400 rounded-sm"
+                          className="w-2.5 h-2.5 bg-white border border-gray-400 rounded-xs"
                           style={{
                             ...pos,
                             cursor: cropHandleCursors[edge],
@@ -666,128 +949,102 @@ export default function ImageEditor() {
               )}
             </div>
           </div>
+
+          {/* Mobile Toolbar (Directly beneath canvas on mobile) */}
+          <div className="lg:hidden flex items-center gap-1 p-1 rounded-lg border bg-card flex-wrap justify-between text-xs shadow-xs">
+            <Button
+              variant={isCropping ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={() => (isCropping ? cancelCrop() : startCropMode())}
+            >
+              <Crop className="h-3 w-3 mr-1" />
+              Crop
+            </Button>
+            {isCropping && (
+              <>
+                <Button size="sm" variant="default" className="h-7 text-xs px-2" onClick={applyCrop}>
+                  Apply
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={cancelCrop}>
+                  Cancel
+                </Button>
+              </>
+            )}
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={rotateLeft}>
+              <RotateCcw className="h-3 w-3 mr-0.5" />
+              -90°
+            </Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={rotateRight}>
+              <RotateCw className="h-3 w-3 mr-0.5" />
+              +90°
+            </Button>
+            <Button
+              variant={adjustments.flipH ? 'secondary' : 'outline'}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={flipH}
+            >
+              <FlipHorizontal className="h-3 w-3 mr-0.5" />
+              Flip H
+            </Button>
+            <Button
+              variant={adjustments.flipV ? 'secondary' : 'outline'}
+              size="sm"
+              className="h-7 text-xs px-2"
+              onClick={flipV}
+            >
+              <FlipVertical className="h-3 w-3 mr-0.5" />
+              Flip V
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-muted-foreground" onClick={resetAll}>
+              <Undo2 className="h-3 w-3 mr-0.5" />
+              Reset
+            </Button>
+          </div>
+
+          {/* Mobile Segmented Mode Tabs */}
+          <div className="lg:hidden grid grid-cols-2 gap-1 p-1 bg-muted rounded-xl text-xs font-medium border shadow-xs">
+            <button
+              type="button"
+              onClick={() => setMobileTab('adjust')}
+              className={cn(
+                'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                mobileTab === 'adjust'
+                  ? 'bg-background text-foreground font-semibold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5 text-purple-500" />
+              <span>Adjust & Filter</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileTab('transform')}
+              className={cn(
+                'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                mobileTab === 'transform'
+                  ? 'bg-background text-foreground font-semibold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Settings2 className="h-3.5 w-3.5 text-purple-500" />
+              <span>Transform & Info</span>
+            </button>
+          </div>
+
+          {/* Mobile Active Tab Body */}
+          <div className="lg:hidden">
+            {mobileTab === 'adjust' ? renderAdjustmentsPanel(true) : renderTransformPanel(true)}
+          </div>
         </div>
 
-        {/* Right Sidebar: Adjustments */}
-        <div className="space-y-4">
-          <div className="rounded-lg border bg-card p-4 space-y-5">
-            <p className="text-sm font-medium">Adjustments</p>
-
-            {/* Brightness */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Brightness</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">{adjustments.brightness}</span>
-              </div>
-              <Slider
-                min={-100}
-                max={100}
-                step={1}
-                value={[adjustments.brightness]}
-                onValueChange={([v]) => updateAdjustment('brightness', v)}
-              />
-            </div>
-
-            {/* Contrast */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Contrast</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">{adjustments.contrast}</span>
-              </div>
-              <Slider
-                min={-100}
-                max={100}
-                step={1}
-                value={[adjustments.contrast]}
-                onValueChange={([v]) => updateAdjustment('contrast', v)}
-              />
-            </div>
-
-            {/* Saturation */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Saturation</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">{adjustments.saturation}</span>
-              </div>
-              <Slider
-                min={-100}
-                max={100}
-                step={1}
-                value={[adjustments.saturation]}
-                onValueChange={([v]) => updateAdjustment('saturation', v)}
-              />
-            </div>
-
-            {/* Blur */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-xs">Blur</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">{adjustments.blur}px</span>
-              </div>
-              <Slider
-                min={0}
-                max={20}
-                step={0.5}
-                value={[adjustments.blur]}
-                onValueChange={([v]) => updateAdjustment('blur', v)}
-              />
-            </div>
-
-            <div className="h-px bg-border" />
-
-            {/* Filters */}
-            <p className="text-sm font-medium">Filters</p>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Grayscale</Label>
-              <Switch
-                checked={adjustments.grayscale}
-                onCheckedChange={(v) => updateAdjustment('grayscale', v)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Sepia</Label>
-              <Switch
-                checked={adjustments.sepia}
-                onCheckedChange={(v) => updateAdjustment('sepia', v)}
-              />
-            </div>
-
-            <div className="h-px bg-border" />
-
-            {/* Transform info */}
-            <p className="text-sm font-medium">Transform</p>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Rotation: {((adjustments.rotation % 360) + 360) % 360}°</p>
-              <p>Flip H: {adjustments.flipH ? 'Yes' : 'No'}</p>
-              <p>Flip V: {adjustments.flipV ? 'Yes' : 'No'}</p>
-              {appliedCrop && (
-                <p>
-                  Crop: {Math.round(appliedCrop.width)}×{Math.round(appliedCrop.height)} at ({Math.round(appliedCrop.x)},{Math.round(appliedCrop.y)})
-                </p>
-              )}
-            </div>
-
-            {appliedCrop && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => {
-                  setAppliedCrop(null);
-                  toast.info('Crop removed');
-                }}
-              >
-                <X className="h-3.5 w-3.5 mr-1.5" />
-                Remove Crop
-              </Button>
-            )}
-
-            <Button variant="outline" size="sm" className="w-full" onClick={resetAll}>
-              <Undo2 className="h-3.5 w-3.5 mr-1.5" />
-              Reset All
-            </Button>
+        {/* Desktop Right Sidebar */}
+        <div className="hidden lg:block space-y-4">
+          <div className="rounded-lg border bg-card p-4 space-y-4 shadow-xs">
+            {renderAdjustmentsPanel(false)}
+            <div className="h-px bg-border my-2" />
+            {renderTransformPanel(false)}
           </div>
         </div>
       </div>

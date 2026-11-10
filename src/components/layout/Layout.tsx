@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
+  Home,
   FileImage,
   Merge,
   Scissors,
@@ -14,12 +15,16 @@ import {
   FileUp,
   Moon,
   Sun,
+  Hash,
+  ShieldCheck,
+  AlignLeft,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
+  { path: '/', label: 'Home', icon: Home, color: 'text-indigo-500' },
   { path: '/image-to-pdf', label: 'Image to PDF', icon: FileImage, color: 'text-blue-500' },
   { path: '/image-editor', label: 'Image Editor', icon: Paintbrush, color: 'text-purple-500' },
   { path: '/merge-pdf', label: 'Merge PDF', icon: Merge, color: 'text-green-500' },
@@ -28,6 +33,9 @@ const navItems = [
   { path: '/pdf-to-images', label: 'PDF to Images', icon: ImageDown, color: 'text-teal-500' },
   { path: '/watermark', label: 'Watermark', icon: Droplets, color: 'text-indigo-500' },
   { path: '/annotate', label: 'Annotate PDF', icon: Type, color: 'text-pink-500' },
+  { path: '/page-numbers', label: 'Page Numbers', icon: Hash, color: 'text-emerald-500' },
+  { path: '/protect-pdf', label: 'Protect & Unlock', icon: ShieldCheck, color: 'text-indigo-500' },
+  { path: '/extract-text', label: 'Extract Text', icon: AlignLeft, color: 'text-sky-500' },
   { path: '/metadata', label: 'Metadata', icon: FileText, color: 'text-slate-500' },
 ];
 

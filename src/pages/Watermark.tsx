@@ -11,8 +11,9 @@ import {
   CheckSquare,
   Square,
   Upload,
+  Settings2,
 } from 'lucide-react';
-import { formatFileSize, readFileAsArrayBuffer, downloadBlob, createPdfBlob } from '@/lib/utils';
+import { cn, formatFileSize, readFileAsArrayBuffer, downloadBlob, createPdfBlob } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -79,7 +80,10 @@ export default function Watermark() {
   const [customPagesInput, setCustomPagesInput] = useState<string>('1');
 
   const { renderPage, getPageCount } = usePdfRenderer();
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [pageAspectRatio, setPageAspectRatio] = useState<number>(1 / 1.414);
+  const desktopCanvasRef = useRef<HTMLCanvasElement>(null);
+  const mobileCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [mobileTab, setMobileTab] = useState<'content' | 'layout'>('content');
 
   const handleFileSelected = useCallback(
     async (files: File[]) => {
@@ -129,13 +133,16 @@ export default function Watermark() {
 
   // Draw overlay preview on canvas
   useEffect(() => {
-    if (!firstPagePreview || !previewCanvasRef.current) return;
+    if (!firstPagePreview) return;
 
     let isCancelled = false;
 
     const renderPreview = async () => {
       try {
         const baseImg = await loadImage(firstPagePreview);
+        if (baseImg.width && baseImg.height) {
+          setPageAspectRatio(baseImg.width / baseImg.height);
+        }
         let wmImg: HTMLImageElement | null = null;
         if (watermarkType === 'image' && watermarkImagePreview) {
           try {
@@ -145,61 +152,68 @@ export default function Watermark() {
           }
         }
 
-        if (isCancelled || !previewCanvasRef.current) return;
+        if (isCancelled) return;
 
-        const canvas = previewCanvasRef.current;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        const canvases = [desktopCanvasRef.current, mobileCanvasRef.current].filter(
+          Boolean
+        ) as HTMLCanvasElement[];
 
-        canvas.width = baseImg.width;
-        canvas.height = baseImg.height;
+        if (canvases.length === 0) return;
 
-        // Draw original page
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(baseImg, 0, 0);
+        for (const canvas of canvases) {
+          const ctx = canvas.getContext('2d');
+          if (!ctx) continue;
 
-        // Determine coordinates
-        let x = canvas.width / 2;
-        let y = canvas.height / 2;
+          canvas.width = baseImg.width;
+          canvas.height = baseImg.height;
 
-        if (position === 'top') {
-          x = canvas.width / 2;
-          y = canvas.height * 0.15;
-        } else if (position === 'bottom') {
-          x = canvas.width / 2;
-          y = canvas.height * 0.85;
-        } else if (position === 'top-left') {
-          x = canvas.width * 0.15;
-          y = canvas.height * 0.15;
-        } else if (position === 'top-right') {
-          x = canvas.width * 0.85;
-          y = canvas.height * 0.15;
-        } else if (position === 'bottom-left') {
-          x = canvas.width * 0.15;
-          y = canvas.height * 0.85;
-        } else if (position === 'bottom-right') {
-          x = canvas.width * 0.85;
-          y = canvas.height * 0.85;
+          // Draw original page
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(baseImg, 0, 0);
+
+          // Determine coordinates
+          let x = canvas.width / 2;
+          let y = canvas.height / 2;
+
+          if (position === 'top') {
+            x = canvas.width / 2;
+            y = canvas.height * 0.15;
+          } else if (position === 'bottom') {
+            x = canvas.width / 2;
+            y = canvas.height * 0.85;
+          } else if (position === 'top-left') {
+            x = canvas.width * 0.15;
+            y = canvas.height * 0.15;
+          } else if (position === 'top-right') {
+            x = canvas.width * 0.85;
+            y = canvas.height * 0.15;
+          } else if (position === 'bottom-left') {
+            x = canvas.width * 0.15;
+            y = canvas.height * 0.85;
+          } else if (position === 'bottom-right') {
+            x = canvas.width * 0.85;
+            y = canvas.height * 0.85;
+          }
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate((-rotation * Math.PI) / 180);
+          ctx.globalAlpha = opacity;
+
+          if (watermarkType === 'text') {
+            ctx.fillStyle = textColor;
+            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 0, 0);
+          } else if (watermarkType === 'image' && wmImg) {
+            const w = wmImg.width * (imageScale / 100);
+            const h = wmImg.height * (imageScale / 100);
+            ctx.drawImage(wmImg, -w / 2, -h / 2, w, h);
+          }
+
+          ctx.restore();
         }
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate((-rotation * Math.PI) / 180);
-        ctx.globalAlpha = opacity;
-
-        if (watermarkType === 'text') {
-          ctx.fillStyle = textColor;
-          ctx.font = `bold ${fontSize}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(text, 0, 0);
-        } else if (watermarkType === 'image' && wmImg) {
-          const w = wmImg.width * (imageScale / 100);
-          const h = wmImg.height * (imageScale / 100);
-          ctx.drawImage(wmImg, -w / 2, -h / 2, w, h);
-        }
-
-        ctx.restore();
       } catch (err) {
         console.error('Error rendering watermark preview:', err);
       }
@@ -351,19 +365,382 @@ export default function Watermark() {
     setFile(null);
     setPdfData(null);
     setFirstPagePreview(null);
+    setPageAspectRatio(1 / 1.414);
     setWatermarkImageFile(null);
     setWatermarkImageData(null);
     setWatermarkImagePreview(null);
   };
 
+  // ---------------------------------------------------------------------------
+  // Sub-renderers for Mobile & Desktop
+  // ---------------------------------------------------------------------------
+
+  // Live Page Preview Card
+  const renderPreview = (isMobile: boolean) => {
+    return (
+      <Card className={cn(isMobile ? 'shadow-xs overflow-hidden' : 'sticky top-20')}>
+        <CardHeader
+          className={cn(
+            isMobile
+              ? 'py-2 px-3 border-b flex flex-row items-center justify-between space-y-0'
+              : 'pb-3'
+          )}
+        >
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Droplets className="h-4 w-4 text-indigo-500 shrink-0" />
+            <CardTitle className={cn(isMobile ? 'text-xs font-semibold' : 'text-base')}>
+              Live Page 1 Preview
+            </CardTitle>
+          </div>
+          <Badge
+            variant="outline"
+            className="text-[10px] bg-primary/10 text-primary border-primary/20 py-0 h-5"
+          >
+            Real-Time
+          </Badge>
+          {!isMobile && (
+            <CardDescription className="text-xs">
+              Real-time visual preview of the watermark on your document.
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent
+          className={cn(
+            'flex flex-col items-center justify-center',
+            isMobile ? 'p-2.5 space-y-2' : 'p-4 space-y-3'
+          )}
+        >
+          {loading ? (
+            <div
+              className={cn(
+                'flex flex-col items-center justify-center gap-2 text-muted-foreground',
+                isMobile ? 'py-14' : 'py-20'
+              )}
+            >
+              <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+              <p className="text-xs">Loading page preview...</p>
+            </div>
+          ) : (
+            <div className="w-full flex items-center justify-center py-1.5 select-none">
+              <div
+                className="relative rounded-md shadow-xl border border-slate-300 dark:border-slate-700/80 overflow-hidden bg-white transition-all duration-150 flex items-center justify-center"
+                style={{
+                  aspectRatio: `${pageAspectRatio}`,
+                  height: isMobile ? '290px' : '480px',
+                  maxHeight: isMobile ? '315px' : '520px',
+                  maxWidth: '100%',
+                }}
+              >
+                <canvas
+                  ref={isMobile ? mobileCanvasRef : desktopCanvasRef}
+                  className="w-full h-full object-contain block bg-white"
+                />
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] sm:text-[11px] text-center text-muted-foreground truncate w-full">
+            {watermarkType === 'text'
+              ? `Text: "${text || 'Watermark'}" • ${fontSize}px`
+              : `Logo (${imageScale}%)`}{' '}
+            • Pos: {position} • Opacity: {Math.round(opacity * 100)}% • Rot: {rotation}°
+          </p>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Watermark Content Controls (Text / Image)
+  const renderContentControls = (isMobile: boolean) => {
+    return (
+      <div className="space-y-3.5">
+        <Tabs
+          value={watermarkType}
+          onValueChange={(v) => setWatermarkType(v as 'text' | 'image')}
+        >
+          <TabsList className="grid w-full grid-cols-2 h-9">
+            <TabsTrigger value="text" className="flex items-center gap-1.5 text-xs">
+              <Type className="h-3.5 w-3.5" />
+              Text Watermark
+            </TabsTrigger>
+            <TabsTrigger value="image" className="flex items-center gap-1.5 text-xs">
+              <ImageIcon className="h-3.5 w-3.5" />
+              Image / Logo
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Text Watermark Controls */}
+          <TabsContent value="text" className="space-y-3 mt-3">
+            <div className="space-y-1">
+              <Label htmlFor="wm-text" className="text-xs font-medium">
+                Watermark Text
+              </Label>
+              <Input
+                id="wm-text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="e.g. CONFIDENTIAL, DRAFT, SAMPLE"
+                className="h-8 sm:h-9 text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">Font Family</Label>
+                <Select value={fontFamily} onValueChange={setFontFamily}>
+                  <SelectTrigger className="h-8 sm:h-9 text-xs">
+                    <SelectValue placeholder="Font" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Helvetica">Helvetica</SelectItem>
+                    <SelectItem value="Times-Roman">Times New Roman</SelectItem>
+                    <SelectItem value="Courier">Courier</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="wm-color" className="text-xs font-medium">
+                  Text Color
+                </Label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="color"
+                    id="wm-color"
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="h-8 w-8 sm:h-9 sm:w-10 rounded border p-0.5 cursor-pointer bg-background shrink-0"
+                  />
+                  <Input
+                    value={textColor}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="font-mono text-xs h-8 sm:h-9 flex-1"
+                    maxLength={7}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <Label className="text-xs">Font Size</Label>
+                <span className="text-muted-foreground font-mono">{fontSize}px</span>
+              </div>
+              <Slider
+                value={[fontSize]}
+                min={12}
+                max={120}
+                step={2}
+                onValueChange={([val]) => setFontSize(val)}
+              />
+            </div>
+          </TabsContent>
+
+          {/* Image Watermark Controls */}
+          <TabsContent value="image" className="space-y-3 mt-3">
+            <div className="space-y-1">
+              <Label className="text-xs font-medium">
+                Upload Logo / Image (PNG or JPG)
+              </Label>
+              <Input
+                type="file"
+                accept="image/png,image/jpeg"
+                onChange={handleImageWatermarkSelected}
+                className="h-8 sm:h-9 text-xs"
+              />
+            </div>
+
+            {watermarkImagePreview && (
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2.5 p-2 border rounded-lg bg-muted/40">
+                  <img
+                    src={watermarkImagePreview}
+                    alt="Watermark logo"
+                    className="h-9 w-9 object-contain rounded border bg-white p-0.5 shrink-0"
+                  />
+                  <div className="text-xs truncate flex-1 min-w-0">
+                    <div className="font-medium truncate text-[11px] sm:text-xs">
+                      {watermarkImageFile?.name || 'Selected Logo'}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {formatFileSize(watermarkImageFile?.size || 0)}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[11px] text-destructive hover:text-destructive px-2 shrink-0"
+                    onClick={() => {
+                      setWatermarkImageFile(null);
+                      setWatermarkImageData(null);
+                      setWatermarkImagePreview(null);
+                    }}
+                  >
+                    Remove
+                  </Button>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <Label className="text-xs">Image Scale</Label>
+                    <span className="text-muted-foreground font-mono">{imageScale}%</span>
+                  </div>
+                  <Slider
+                    value={[imageScale]}
+                    min={5}
+                    max={150}
+                    step={5}
+                    onValueChange={([val]) => setImageScale(val)}
+                  />
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {isMobile && (
+          <Button
+            onClick={handleApplyWatermark}
+            disabled={processing}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-9 text-xs font-medium mt-2"
+          >
+            {processing ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                Processing PDF...
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Apply Watermark & Download PDF
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  // Watermark Layout Controls (Position, Target Pages, Opacity, Rotation)
+  const renderLayoutControls = (isMobile: boolean) => {
+    return (
+      <div className="space-y-3.5">
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Position</Label>
+            <Select value={position} onValueChange={setPosition}>
+              <SelectTrigger className="h-8 sm:h-9 text-xs">
+                <SelectValue placeholder="Position" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="center">Center</SelectItem>
+                <SelectItem value="top">Top Center</SelectItem>
+                <SelectItem value="bottom">Bottom Center</SelectItem>
+                <SelectItem value="top-left">Top Left</SelectItem>
+                <SelectItem value="top-right">Top Right</SelectItem>
+                <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                <SelectItem value="bottom-right">Bottom Right</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-medium">Target Pages</Label>
+            <Select
+              value={targetPagesMode}
+              onValueChange={(v: 'all' | 'custom') => setTargetPagesMode(v)}
+            >
+              <SelectTrigger className="h-8 sm:h-9 text-xs">
+                <SelectValue placeholder="Pages" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Pages ({pageCount})</SelectItem>
+                <SelectItem value="custom">Specific Pages</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {targetPagesMode === 'custom' && (
+          <div className="space-y-1">
+            <Label htmlFor="custom-pages" className="text-xs font-medium">
+              Specify Pages (e.g. 1, 3, 5)
+            </Label>
+            <Input
+              id="custom-pages"
+              value={customPagesInput}
+              onChange={(e) => setCustomPagesInput(e.target.value)}
+              placeholder="1, 2, 4"
+              className="h-8 sm:h-9 text-xs"
+            />
+          </div>
+        )}
+
+        <div className={cn(isMobile ? 'grid grid-cols-2 gap-2.5 pt-0.5' : 'space-y-3 pt-2')}>
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <Label className="text-[11px] sm:text-xs">Opacity</Label>
+              <span className="text-[11px] sm:text-xs text-muted-foreground font-mono">
+                {Math.round(opacity * 100)}%
+              </span>
+            </div>
+            <Slider
+              value={[opacity * 100]}
+              min={5}
+              max={100}
+              step={5}
+              onValueChange={([val]) => setOpacity(val / 100)}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <Label className="text-[11px] sm:text-xs">Rotation</Label>
+              <span className="text-[11px] sm:text-xs text-muted-foreground font-mono">
+                {rotation}°
+              </span>
+            </div>
+            <Slider
+              value={[rotation]}
+              min={-90}
+              max={90}
+              step={5}
+              onValueChange={([val]) => setRotation(val)}
+            />
+          </div>
+        </div>
+
+        {isMobile && (
+          <Button
+            onClick={handleApplyWatermark}
+            disabled={processing}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-9 text-xs font-medium mt-2"
+          >
+            {processing ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                Processing PDF...
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Apply Watermark & Download PDF
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Droplets className="h-8 w-8 text-indigo-500" />
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-6xl">
+      {/* Header */}
+      <div className={cn('mb-6 sm:mb-8', file && 'hidden sm:block')}>
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2.5 sm:gap-3">
+          <Droplets className="h-7 w-7 sm:h-8 sm:w-8 text-indigo-500" />
           Add Watermark
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
           Apply text or image stamps to safeguard your document with customizable opacity, rotation, and positioning.
         </p>
       </div>
@@ -381,9 +758,34 @@ export default function Watermark() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* File Header */}
-          <Card>
+        <div className="space-y-3 sm:space-y-6">
+          {/* Mobile Compact File Header */}
+          <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                PDF
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold truncate max-w-[170px]">{file.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {pageCount} {pageCount === 1 ? 'page' : 'pages'} • {formatFileSize(file.size)}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[11px] px-2"
+              onClick={handleReset}
+              disabled={loading || processing}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Change
+            </Button>
+          </div>
+
+          {/* Desktop File Header */}
+          <Card className="hidden sm:block">
             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold">
@@ -404,7 +806,12 @@ export default function Watermark() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={loading || processing}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  disabled={loading || processing}
+                >
                   <RefreshCw className="h-4 w-4 mr-1.5" />
                   Choose Another File
                 </Button>
@@ -412,8 +819,53 @@ export default function Watermark() {
             </CardContent>
           </Card>
 
-          {/* Configuration and Live Preview */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* MOBILE VIEW (lg:hidden): Preview pinned at top, segmented tabs directly beneath */}
+          <div className="lg:hidden space-y-3">
+            {/* 1. Compact Live Page 1 Preview (Visible with ZERO scroll) */}
+            {renderPreview(true)}
+
+            {/* 2. Mobile Segmented Tab Switcher */}
+            <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-xl text-xs font-medium border shadow-xs">
+              <button
+                type="button"
+                onClick={() => setMobileTab('content')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  mobileTab === 'content'
+                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Type className="h-3.5 w-3.5 text-indigo-500" />
+                <span>Watermark Content</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('layout')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  mobileTab === 'layout'
+                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Settings2 className="h-3.5 w-3.5 text-indigo-500" />
+                <span>Position & Style</span>
+              </button>
+            </div>
+
+            {/* 3. Active Tab Content */}
+            <Card className="shadow-xs">
+              <CardContent className="p-3 sm:p-4">
+                {mobileTab === 'content'
+                  ? renderContentControls(true)
+                  : renderLayoutControls(true)}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* DESKTOP VIEW (hidden lg:grid lg:grid-cols-12 gap-6) */}
+          <div className="hidden lg:grid lg:grid-cols-12 gap-6">
             {/* Left Controls */}
             <div className="lg:col-span-7 space-y-6">
               <Card>
@@ -421,215 +873,11 @@ export default function Watermark() {
                   <CardTitle className="text-lg">Watermark Configuration</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Type Tabs */}
-                  <Tabs
-                    value={watermarkType}
-                    onValueChange={(v) => setWatermarkType(v as 'text' | 'image')}
-                  >
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="text" className="flex items-center gap-2">
-                        <Type className="h-4 w-4" />
-                        Text Watermark
-                      </TabsTrigger>
-                      <TabsTrigger value="image" className="flex items-center gap-2">
-                        <ImageIcon className="h-4 w-4" />
-                        Image / Logo
-                      </TabsTrigger>
-                    </TabsList>
-
-                    {/* Text Watermark Controls */}
-                    <TabsContent value="text" className="space-y-4 mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="wm-text">Watermark Text</Label>
-                        <Input
-                          id="wm-text"
-                          value={text}
-                          onChange={(e) => setText(e.target.value)}
-                          placeholder="e.g. CONFIDENTIAL, DRAFT, SAMPLE"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Font Family</Label>
-                          <Select value={fontFamily} onValueChange={setFontFamily}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Font" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Helvetica">Helvetica</SelectItem>
-                              <SelectItem value="Times-Roman">Times New Roman</SelectItem>
-                              <SelectItem value="Courier">Courier</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="wm-color">Text Color</Label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="color"
-                              id="wm-color"
-                              value={textColor}
-                              onChange={(e) => setTextColor(e.target.value)}
-                              className="h-10 w-12 rounded border p-1 cursor-pointer bg-background"
-                            />
-                            <Input
-                              value={textColor}
-                              onChange={(e) => setTextColor(e.target.value)}
-                              className="font-mono text-xs"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-xs">
-                          <Label>Font Size: {fontSize}px</Label>
-                        </div>
-                        <Slider
-                          value={[fontSize]}
-                          min={12}
-                          max={120}
-                          step={2}
-                          onValueChange={([val]) => setFontSize(val)}
-                        />
-                      </div>
-                    </TabsContent>
-
-                    {/* Image Watermark Controls */}
-                    <TabsContent value="image" className="space-y-4 mt-4">
-                      <div className="space-y-2">
-                        <Label>Upload Logo / Image (PNG or JPG)</Label>
-                        <Input
-                          type="file"
-                          accept="image/png,image/jpeg"
-                          onChange={handleImageWatermarkSelected}
-                        />
-                      </div>
-
-                      {watermarkImagePreview && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-2.5 border rounded-lg bg-muted/40">
-                            <img
-                              src={watermarkImagePreview}
-                              alt="Watermark logo"
-                              className="h-10 w-10 object-contain rounded border bg-white p-0.5 shrink-0"
-                            />
-                            <div className="text-xs truncate flex-1 min-w-0">
-                              <div className="font-medium truncate">
-                                {watermarkImageFile?.name || 'Selected Logo'}
-                              </div>
-                              <div className="text-muted-foreground">
-                                {formatFileSize(watermarkImageFile?.size || 0)}
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 text-xs text-destructive hover:text-destructive shrink-0"
-                              onClick={() => {
-                                setWatermarkImageFile(null);
-                                setWatermarkImageData(null);
-                                setWatermarkImagePreview(null);
-                              }}
-                            >
-                              Remove
-                            </Button>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-xs">
-                              <Label>Image Scale: {imageScale}%</Label>
-                            </div>
-                            <Slider
-                              value={[imageScale]}
-                              min={5}
-                              max={150}
-                              step={5}
-                              onValueChange={([val]) => setImageScale(val)}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
+                  {renderContentControls(false)}
 
                   {/* Common Controls: Position, Opacity, Rotation */}
                   <div className="pt-4 border-t space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Position</Label>
-                        <Select value={position} onValueChange={setPosition}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Position" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="center">Center</SelectItem>
-                            <SelectItem value="top">Top Center</SelectItem>
-                            <SelectItem value="bottom">Bottom Center</SelectItem>
-                            <SelectItem value="top-left">Top Left</SelectItem>
-                            <SelectItem value="top-right">Top Right</SelectItem>
-                            <SelectItem value="bottom-left">Bottom Left</SelectItem>
-                            <SelectItem value="bottom-right">Bottom Right</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Target Pages</Label>
-                        <Select
-                          value={targetPagesMode}
-                          onValueChange={(v: 'all' | 'custom') => setTargetPagesMode(v)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pages" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Pages ({pageCount})</SelectItem>
-                            <SelectItem value="custom">Specific Pages</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {targetPagesMode === 'custom' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="custom-pages">Specify Pages (e.g. 1, 3, 5)</Label>
-                        <Input
-                          id="custom-pages"
-                          value={customPagesInput}
-                          onChange={(e) => setCustomPagesInput(e.target.value)}
-                          placeholder="1, 2, 4"
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <Label>Opacity: {Math.round(opacity * 100)}%</Label>
-                      </div>
-                      <Slider
-                        value={[opacity * 100]}
-                        min={5}
-                        max={100}
-                        step={5}
-                        onValueChange={([val]) => setOpacity(val / 100)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs">
-                        <Label>Rotation: {rotation}°</Label>
-                      </div>
-                      <Slider
-                        value={[rotation]}
-                        min={-90}
-                        max={90}
-                        step={5}
-                        onValueChange={([val]) => setRotation(val)}
-                      />
-                    </div>
+                    {renderLayoutControls(false)}
                   </div>
 
                   <Button
@@ -650,34 +898,7 @@ export default function Watermark() {
             </div>
 
             {/* Right: Live Preview */}
-            <div className="lg:col-span-5">
-              <Card className="sticky top-20">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span>Live Page 1 Preview</span>
-                    <Badge variant="outline" className="text-xs">Interactive</Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Real-time visual preview of the watermark on your document.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center p-4">
-                  {loading ? (
-                    <div className="py-20 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-                      <p className="text-xs">Loading page preview...</p>
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg shadow-sm bg-white overflow-hidden max-h-[500px]">
-                      <canvas
-                        ref={previewCanvasRef}
-                        className="max-w-full h-auto object-contain"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            <div className="lg:col-span-5">{renderPreview(false)}</div>
           </div>
         </div>
       )}

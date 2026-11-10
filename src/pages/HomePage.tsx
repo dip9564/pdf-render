@@ -13,6 +13,9 @@ import {
   Shield,
   Zap,
   Lock,
+  Hash,
+  ShieldCheck,
+  AlignLeft,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -80,6 +83,30 @@ const tools = [
     icon: Type,
     color: 'bg-pink-500/10 text-pink-500',
     borderColor: 'hover:border-pink-500/30',
+  },
+  {
+    path: '/page-numbers',
+    label: 'Page Numbers',
+    description: 'Insert customizable page numbers, headers, and footers with live preview.',
+    icon: Hash,
+    color: 'bg-emerald-500/10 text-emerald-500',
+    borderColor: 'hover:border-emerald-500/30',
+  },
+  {
+    path: '/protect-pdf',
+    label: 'Protect & Unlock',
+    description: 'Add military-grade AES-256 encryption or remove password protection from PDFs.',
+    icon: ShieldCheck,
+    color: 'bg-indigo-500/10 text-indigo-500',
+    borderColor: 'hover:border-indigo-500/30',
+  },
+  {
+    path: '/extract-text',
+    label: 'Extract Text',
+    description: 'Extract clean text and Markdown from PDF pages with real-time search.',
+    icon: AlignLeft,
+    color: 'bg-sky-500/10 text-sky-500',
+    borderColor: 'hover:border-sky-500/30',
   },
   {
     path: '/metadata',

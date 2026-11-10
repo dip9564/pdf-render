@@ -54,22 +54,36 @@ export default function OrganizePdf() {
         setPdfData(buffer);
         const count = await getPageCount(new Uint8Array(buffer.slice(0)));
 
-        let thumbs: string[] = [];
-        try {
-          thumbs = await renderAllPages(new Uint8Array(buffer.slice(0)), 0.4);
-        } catch (e) {
-          console.error('Error rendering previews', e);
-        }
-
         const initialPages: PageItem[] = Array.from({ length: count }).map((_, i) => ({
           id: `page-${i}-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
           originalIndex: i,
           rotation: 0,
-          thumbnailUrl: thumbs[i] || '',
+          thumbnailUrl: '',
         }));
 
         setPages(initialPages);
         setSelectedPageIds(new Set());
+        setLoading(false);
+
+        // Render thumbnails progressively
+        try {
+          await renderAllPages(
+            new Uint8Array(buffer.slice(0)),
+            0.4,
+            (current, _, dataUrl) => {
+              setPages((prev) => {
+                const next = [...prev];
+                if (next[current - 1]) {
+                  next[current - 1] = { ...next[current - 1], thumbnailUrl: dataUrl };
+                }
+                return next;
+              });
+            }
+          );
+        } catch (e) {
+          console.error('Error rendering previews', e);
+        }
+
         toast.success(`Loaded ${count} pages from "${selectedFile.name}"`);
       } catch (err) {
         console.error('Error loading PDF', err);
@@ -82,6 +96,24 @@ export default function OrganizePdf() {
     },
     [getPageCount, renderAllPages]
   );
+
+  const selectAll = () => {
+    setSelectedPageIds(new Set(pages.map((p) => p.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedPageIds(new Set());
+  };
+
+  const selectOdd = () => {
+    setSelectedPageIds(new Set(pages.filter((_, i) => i % 2 === 0).map((p) => p.id)));
+    toast.info('Selected odd pages (1, 3, 5...)');
+  };
+
+  const selectEven = () => {
+    setSelectedPageIds(new Set(pages.filter((_, i) => i % 2 === 1).map((p) => p.id)));
+    toast.info('Selected even pages (2, 4, 6...)');
+  };
 
   // Rotation
   const handleRotate = (id: string, delta: number = 90) => {
@@ -307,9 +339,35 @@ export default function OrganizePdf() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* Action Bar */}
-          <Card>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Mobile Compact File Header */}
+          <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold text-xs shrink-0">
+                PDF
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold truncate max-w-[170px]">{file.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {pages.length} {pages.length === 1 ? 'page' : 'pages'} • {formatFileSize(file.size)}
+                  {selectedPageIds.size > 0 && ` • ${selectedPageIds.size} selected`}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[11px] px-2"
+              onClick={handleReset}
+              disabled={loading || processing}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Change
+            </Button>
+          </div>
+
+          {/* Desktop File Header & Action Bar */}
+          <Card className="hidden sm:block">
             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold">
@@ -373,13 +431,39 @@ export default function OrganizePdf() {
             </CardContent>
           </Card>
 
-          {/* Organizer Grid */}
+          {/* Organizer Grid Card */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Page Order</CardTitle>
-              <CardDescription>
-                Drag and drop cards to reorder. Use the quick controls below each card to rotate, duplicate, or delete individual pages.
-              </CardDescription>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base sm:text-lg">Page Order & Selection</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Reorder with arrows, select pages to extract, or rotate and duplicate individual cards.
+                  </CardDescription>
+                </div>
+
+                {/* Batch selection buttons */}
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <Button variant="outline" size="sm" onClick={selectAll} className="text-xs h-7 px-2">
+                    All
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={selectOdd} className="text-xs h-7 px-2">
+                    Odd (1,3..)
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={selectEven} className="text-xs h-7 px-2">
+                    Even (2,4..)
+                  </Button>
+                  {selectedPageIds.size > 0 && (
+                    <Button variant="outline" size="sm" onClick={deselectAll} className="text-xs h-7 px-2">
+                      Clear ({selectedPageIds.size})
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => handleRotateAll(90)} className="text-xs h-7 px-2 sm:hidden">
+                    <RotateCw className="h-3 w-3 mr-1" />
+                    Rotate All
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -524,6 +608,49 @@ export default function OrganizePdf() {
               )}
             </CardContent>
           </Card>
+
+          {/* Mobile Floating Action Bar */}
+          <div className="sm:hidden fixed bottom-4 left-3 right-3 z-40">
+            <div className="bg-card/95 backdrop-blur-md border border-cyan-500/40 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold pl-1">
+                <span>{pages.length} pages</span>
+                {selectedPageIds.size > 0 && (
+                  <span className="text-cyan-500 ml-1">({selectedPageIds.size} sel)</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {selectedPageIds.size > 0 ? (
+                  <Button
+                    onClick={handleExtractSelected}
+                    disabled={processing}
+                    size="sm"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs h-8 px-3 shadow-xs"
+                  >
+                    {processing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                    ) : (
+                      <FileCheck className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Extract ({selectedPageIds.size})
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSaveModified}
+                    disabled={processing}
+                    size="sm"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs h-8 px-3 shadow-xs"
+                  >
+                    {processing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Save PDF
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

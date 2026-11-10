@@ -492,6 +492,7 @@ export default function ImageToPdf() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [croppingImage, setCroppingImage] = useState<ImageItem | null>(null);
+  const [mobileTab, setMobileTab] = useState<'edit' | 'settings' | 'images'>('edit');
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [pageSize, setPageSize] = useState<PageSize>('A4');
@@ -907,7 +908,14 @@ export default function ImageToPdf() {
 
       const pdfBytes = await pdfDoc.save();
       const blob = createPdfBlob(pdfBytes);
-      downloadBlob(blob, 'images-to-pdf.pdf');
+      const baseName = images[0]?.file?.name
+        ? images[0].file.name.replace(/\.[^/.]+$/, '')
+        : 'images';
+      const outputFilename =
+        images.length > 1
+          ? `${baseName}_and_${images.length - 1}_more.pdf`
+          : `${baseName}_converted.pdf`;
+      downloadBlob(blob, outputFilename);
       toast.success('PDF generated and downloaded!');
     } catch (err) {
       console.error('PDF generation error:', err);
@@ -923,719 +931,920 @@ export default function ImageToPdf() {
     toast.info('All images cleared');
   }, []);
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-500/10 mb-4">
-          <FileImage className="h-8 w-8 text-blue-500" />
+  // ---------------------------------------------------------------------------
+  // Sub-renderers for Mobile & Desktop
+  // ---------------------------------------------------------------------------
+
+  // Live PDF Page Preview Card
+  const renderPreviewCard = (isMobile: boolean) => {
+    if (images.length === 0 || !selectedImage) {
+      return (
+        <div className="rounded-xl border bg-card p-6 text-center text-muted-foreground flex flex-col items-center justify-center gap-2 shadow-xs">
+          <FileImage className="h-8 w-8 text-muted-foreground/40" />
+          <p className="text-xs">Upload images to preview your PDF pages live</p>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">Image to PDF</h1>
-        <p className="text-muted-foreground mt-2 max-w-lg mx-auto text-sm">
-          Convert your images to a single PDF document. Select any image to crop,
-          apply filters, and preview live page layout before generating.
+      );
+    }
+
+    return (
+      <div
+        className={cn(
+          'rounded-xl border bg-card shadow-xs transition-all',
+          isMobile ? 'p-3 space-y-2' : 'p-4 sm:p-5 space-y-4'
+        )}
+      >
+        {/* Header with Title and Pagination */}
+        <div className="flex items-center justify-between border-b pb-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Eye className="h-4 w-4 text-blue-500 shrink-0" />
+            <h2 className="text-xs sm:text-sm font-semibold truncate">Live Page Preview</h2>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-[11px] touch-manipulation"
+              disabled={selectedIndex <= 0}
+              onClick={() => setSelectedImageId(images[selectedIndex - 1].id)}
+              title="Previous Page"
+            >
+              <ChevronLeft className="h-3 w-3 mr-0.5" />
+              Prev
+            </Button>
+            <span className="text-[11px] font-semibold px-1 text-foreground min-w-[50px] text-center">
+              {selectedIndex + 1} / {images.length}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 px-2 text-[11px] touch-manipulation"
+              disabled={selectedIndex >= images.length - 1}
+              onClick={() => setSelectedImageId(images[selectedIndex + 1].id)}
+              title="Next Page"
+            >
+              Next
+              <ChevronRight className="h-3 w-3 ml-0.5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Paper Sheet Preview Container */}
+        <div
+          className={cn(
+            'flex items-center justify-center bg-muted/30 border rounded-lg overflow-hidden select-none',
+            isMobile ? 'p-2 h-[190px]' : 'p-3 sm:p-4 min-h-[360px]'
+          )}
+        >
+          <div
+            className={cn(
+              'relative shadow-md rounded border overflow-hidden transition-all duration-150 flex items-center justify-center',
+              isMobile ? 'h-full max-h-[175px] max-w-full' : 'max-w-full max-h-[460px]'
+            )}
+            style={{
+              backgroundColor: bgColor,
+              aspectRatio: `${pageDims.width} / ${pageDims.height}`,
+              ...(!isMobile
+                ? { width: orientation === 'portrait' ? '300px' : '420px' }
+                : {}),
+            }}
+          >
+            {/* Margin Boundary Area */}
+            <div
+              className="absolute inset-0 flex items-center justify-center overflow-hidden"
+              style={{
+                padding: `${(margin / Math.max(pageDims.width, pageDims.height)) * 100}%`,
+              }}
+            >
+              {/* Margin dashed guide */}
+              {margin > 0 && (
+                <div
+                  className="absolute pointer-events-none border border-dashed border-black/20 dark:border-white/25"
+                  style={{
+                    inset: `${(margin / Math.max(pageDims.width, pageDims.height)) * 100}%`,
+                  }}
+                />
+              )}
+
+              {/* Filtered & Transformed Image */}
+              <div
+                className={cn(
+                  'w-full h-full flex items-center justify-center overflow-hidden',
+                  fitMode === 'fill' ? 'relative' : ''
+                )}
+              >
+                <img
+                  src={selectedImage.dataUrl}
+                  alt={selectedImage.file.name}
+                  style={{
+                    filter: getFilterString(selectedImage),
+                    transform: `rotate(${selectedImage.rotation}deg) scaleX(${
+                      selectedImage.flipH ? -1 : 1
+                    }) scaleY(${selectedImage.flipV ? -1 : 1})`,
+                  }}
+                  className={cn(
+                    'transition-transform duration-75 block',
+                    fitMode === 'fit'
+                      ? 'max-w-full max-h-full object-contain'
+                      : fitMode === 'fill'
+                      ? 'w-full h-full object-cover'
+                      : 'max-w-none'
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Page details info pill */}
+        <p className="text-[10px] sm:text-[11px] text-center text-muted-foreground truncate">
+          {pageSize} ({orientation}) • {fitMode === 'fit' ? 'Fit to Page' : fitMode === 'fill' ? 'Fill Page' : 'Original'} • Margin: {margin}pt
         </p>
       </div>
+    );
+  };
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Uploader, Image List, and Image Editor */}
-        <div className="lg:col-span-7 space-y-6">
+  // Selected Image Edit & Filter Panel
+  const renderEditPanel = (isMobile: boolean) => {
+    if (!selectedImage) return null;
+
+    return (
+      <div className="rounded-xl border bg-card p-3 sm:p-5 space-y-3.5 shadow-xs">
+        {/* Header & Reset / Batch actions */}
+        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b pb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-1.5 bg-primary/10 text-primary rounded-md shrink-0">
+              <Paintbrush className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-sm font-semibold truncate max-w-[190px] sm:max-w-none">
+                Edit: {selectedImage.file.name}
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">
+                Real-time updates in preview above
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {selectedImage.hasCrop && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 sm:h-7 text-[11px] text-orange-600 border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/30 px-2"
+                onClick={() => resetCrop(selectedImage.id)}
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Reset Crop
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 sm:h-7 text-[11px] text-muted-foreground px-2"
+              onClick={() => resetAdjustments(selectedImage.id)}
+            >
+              Reset Filters
+            </Button>
+          </div>
+        </div>
+
+        {/* Transform Actions: Crop, Rotate, Flip */}
+        <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="h-7 sm:h-8 text-xs font-medium px-2.5"
+            onClick={() => setCroppingImage(selectedImage)}
+          >
+            <Crop className="h-3.5 w-3.5 mr-1" />
+            Crop
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 sm:h-8 text-xs px-2"
+            onClick={() => rotateImage(selectedImage.id, -90)}
+            title="Rotate Left 90°"
+          >
+            <RotateCcw className="h-3.5 w-3.5 sm:mr-1" />
+            <span className="hidden sm:inline">Left</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 sm:h-8 text-xs px-2"
+            onClick={() => rotateImage(selectedImage.id, 90)}
+            title="Rotate Right 90°"
+          >
+            <RotateCw className="h-3.5 w-3.5 sm:mr-1" />
+            <span className="hidden sm:inline">Right</span>
+          </Button>
+          <Button
+            variant={selectedImage.flipH ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 sm:h-8 text-xs px-2"
+            onClick={() => toggleFlip(selectedImage.id, 'H')}
+          >
+            <FlipHorizontal className="h-3.5 w-3.5 sm:mr-1" />
+            <span>Flip H</span>
+          </Button>
+          <Button
+            variant={selectedImage.flipV ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 sm:h-8 text-xs px-2"
+            onClick={() => toggleFlip(selectedImage.id, 'V')}
+          >
+            <FlipVertical className="h-3.5 w-3.5 sm:mr-1" />
+            <span>Flip V</span>
+          </Button>
+        </div>
+
+        {/* Filter Sliders in 2-column Grid */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 pt-0.5">
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <Label className="text-[11px]">Brightness</Label>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {selectedImage.brightness}%
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={200}
+              step={1}
+              value={[selectedImage.brightness]}
+              onValueChange={([v]) =>
+                updateImageAdjustment(selectedImage.id, 'brightness', v)
+              }
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <Label className="text-[11px]">Contrast</Label>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {selectedImage.contrast}%
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={200}
+              step={1}
+              value={[selectedImage.contrast]}
+              onValueChange={([v]) =>
+                updateImageAdjustment(selectedImage.id, 'contrast', v)
+              }
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <Label className="text-[11px]">Saturation</Label>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {selectedImage.saturation}%
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={200}
+              step={1}
+              value={[selectedImage.saturation]}
+              onValueChange={([v]) =>
+                updateImageAdjustment(selectedImage.id, 'saturation', v)
+              }
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <Label className="text-[11px]">Blur</Label>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                {selectedImage.blur}px
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={10}
+              step={1}
+              value={[selectedImage.blur]}
+              onValueChange={([v]) =>
+                updateImageAdjustment(selectedImage.id, 'blur', v)
+              }
+            />
+          </div>
+        </div>
+
+        {/* Color Filter Switches */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t text-xs">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+            <div className="flex items-center gap-1.5">
+              <Switch
+                id={isMobile ? 'm-grayscale' : 'grayscale-toggle'}
+                checked={selectedImage.grayscale}
+                onCheckedChange={(v) =>
+                  updateImageAdjustment(selectedImage.id, 'grayscale', v)
+                }
+              />
+              <Label
+                htmlFor={isMobile ? 'm-grayscale' : 'grayscale-toggle'}
+                className="cursor-pointer text-[11px] sm:text-xs"
+              >
+                Grayscale
+              </Label>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Switch
+                id={isMobile ? 'm-sepia' : 'sepia-toggle'}
+                checked={selectedImage.sepia}
+                onCheckedChange={(v) =>
+                  updateImageAdjustment(selectedImage.id, 'sepia', v)
+                }
+              />
+              <Label
+                htmlFor={isMobile ? 'm-sepia' : 'sepia-toggle'}
+                className="cursor-pointer text-[11px] sm:text-xs"
+              >
+                Sepia
+              </Label>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Switch
+                id={isMobile ? 'm-invert' : 'invert-toggle'}
+                checked={selectedImage.invert}
+                onCheckedChange={(v) =>
+                  updateImageAdjustment(selectedImage.id, 'invert', v)
+                }
+              />
+              <Label
+                htmlFor={isMobile ? 'm-invert' : 'invert-toggle'}
+                className="cursor-pointer text-[11px] sm:text-xs"
+              >
+                Invert
+              </Label>
+            </div>
+          </div>
+        </div>
+
+        {/* Apply filters to all button */}
+        {images.length > 1 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-8 text-xs font-medium border-primary/40 text-primary hover:bg-primary/10 mt-1"
+            onClick={applyFiltersToAll}
+          >
+            <Layers className="h-3.5 w-3.5 mr-1.5" />
+            Apply Filters to All Images ({images.length})
+          </Button>
+        )}
+
+        {/* Mobile Quick Generate PDF Button */}
+        {isMobile && (
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-9 text-xs font-medium mt-1"
+            onClick={generatePdf}
+            disabled={images.length === 0 || isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                Generating PDF...
+              </>
+            ) : (
+              <>
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                Generate & Download PDF
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  // PDF Settings Panel
+  const renderPdfSettings = (isMobile: boolean) => {
+    return (
+      <div className="rounded-xl border bg-card p-3.5 sm:p-5 space-y-4 shadow-xs">
+        <div className="flex items-center gap-2 text-sm font-semibold border-b pb-2.5">
+          <Settings2 className="h-4 w-4 text-primary" />
+          <span>PDF Settings</span>
+        </div>
+
+        {/* Page Size */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Page Size</Label>
+          <Select
+            value={pageSize}
+            onValueChange={(v) => setPageSize(v as PageSize)}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="A4">A4 (210 × 297 mm)</SelectItem>
+              <SelectItem value="A3">A3 (297 × 420 mm)</SelectItem>
+              <SelectItem value="Letter">Letter (8.5 × 11 in)</SelectItem>
+              <SelectItem value="Legal">Legal (8.5 × 14 in)</SelectItem>
+              <SelectItem value="Custom">Custom</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Custom Size Inputs */}
+        {pageSize === 'Custom' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Width (pt)</Label>
+              <Input
+                type="number"
+                min={72}
+                max={4000}
+                value={customWidth}
+                onChange={(e) =>
+                  setCustomWidth(Number(e.target.value) || 595)
+                }
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Height (pt)</Label>
+              <Input
+                type="number"
+                min={72}
+                max={4000}
+                value={customHeight}
+                onChange={(e) =>
+                  setCustomHeight(Number(e.target.value) || 842)
+                }
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Orientation */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Orientation</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setOrientation('portrait')}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-md border p-2 text-xs font-medium transition-colors touch-manipulation',
+                orientation === 'portrait'
+                  ? 'border-primary bg-primary/10 text-primary font-semibold'
+                  : 'border-muted hover:border-primary/50'
+              )}
+            >
+              <div className="w-4 h-6 rounded-xs border-2 border-current" />
+              Portrait
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrientation('landscape')}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-md border p-2 text-xs font-medium transition-colors touch-manipulation',
+                orientation === 'landscape'
+                  ? 'border-primary bg-primary/10 text-primary font-semibold'
+                  : 'border-muted hover:border-primary/50'
+              )}
+            >
+              <div className="w-6 h-4 rounded-xs border-2 border-current" />
+              Landscape
+            </button>
+          </div>
+        </div>
+
+        {/* Fit Mode */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Image Fit</Label>
+          <Select
+            value={fitMode}
+            onValueChange={(v) => setFitMode(v as FitMode)}
+          >
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fit">Fit to Page (Keep Aspect Ratio)</SelectItem>
+              <SelectItem value="fill">Fill Page (Crop Overflow)</SelectItem>
+              <SelectItem value="original">Original Proportions</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Margin */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <Label className="text-xs">Margin</Label>
+            <span className="text-muted-foreground font-mono">{margin} pt</span>
+          </div>
+          <Slider
+            min={0}
+            max={100}
+            step={1}
+            value={[margin]}
+            onValueChange={([v]) => setMargin(v)}
+          />
+        </div>
+
+        {/* Background Color */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium">Background Color</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={bgColor}
+              onChange={(e) => setBgColor(e.target.value)}
+              className="w-9 h-9 rounded-md border cursor-pointer bg-transparent p-0.5"
+            />
+            <Input
+              value={bgColor}
+              onChange={(e) => setBgColor(e.target.value)}
+              className="flex-1 h-9 text-xs font-mono"
+              maxLength={7}
+            />
+          </div>
+        </div>
+
+        {/* Image Quality */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <Label className="text-xs">Export Quality</Label>
+            <span className="text-muted-foreground font-mono">
+              {Math.round(quality * 100)}%
+            </span>
+          </div>
+          <Slider
+            min={10}
+            max={100}
+            step={5}
+            value={[Math.round(quality * 100)]}
+            onValueChange={([v]) => setQuality(v / 100)}
+          />
+        </div>
+
+        {/* Generate Button */}
+        <Button
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 mt-1"
+          size="lg"
+          onClick={generatePdf}
+          disabled={images.length === 0 || isGenerating}
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Generating PDF...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4 mr-2" />
+              Generate & Download PDF
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  };
+
+  // Added Images Thumbnail List
+  const renderImagesList = (isMobile: boolean) => {
+    return (
+      <div className="space-y-3">
+        {/* Header with image count and clear all */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <p className="text-xs sm:text-sm font-semibold">
+              {images.length} image{images.length !== 1 ? 's' : ''} added
+            </p>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">
+              (Tap to select & edit)
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearAll}
+            className="h-7 text-xs text-destructive border-destructive/20 hover:bg-destructive/10"
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            Clear All
+          </Button>
+        </div>
+
+        {/* Thumbnails Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {images.map((img, index) => {
+            const isSelected = img.id === selectedImage?.id;
+            return (
+              <div
+                key={img.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                onDrop={(e) => handleDrop(e, index)}
+                onClick={() => {
+                  setSelectedImageId(img.id);
+                  if (isMobile) {
+                    setMobileTab('edit');
+                  }
+                }}
+                className={cn(
+                  'group relative rounded-lg border bg-card overflow-hidden transition-all cursor-pointer select-none',
+                  isSelected
+                    ? 'ring-2 ring-primary border-primary shadow-xs bg-primary/5'
+                    : 'hover:border-primary/50',
+                  dragOverIndex === index && 'ring-2 ring-primary border-primary',
+                  draggedIndex === index && 'opacity-50'
+                )}
+              >
+                {/* Thumbnail Container */}
+                <div className="aspect-square relative overflow-hidden bg-muted/40">
+                  <img
+                    src={img.dataUrl}
+                    alt={img.file.name}
+                    className="w-full h-full object-cover transition-transform"
+                    style={{
+                      filter: getFilterString(img),
+                      transform: `rotate(${img.rotation}deg) scaleX(${
+                        img.flipH ? -1 : 1
+                      }) scaleY(${img.flipV ? -1 : 1})`,
+                    }}
+                  />
+
+                  {/* Left reorder controls */}
+                  <div className="absolute top-1 left-1 flex items-center gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 bg-black/60 text-white hover:bg-black/80 hover:text-white p-0 rounded touch-manipulation"
+                      disabled={index === 0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveImage(index, 'left');
+                      }}
+                      title="Move Left"
+                    >
+                      <ChevronLeft className="h-3 w-3" />
+                    </Button>
+                    <div className="bg-black/60 text-white rounded p-0.5 hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
+                      <GripVertical className="h-3.5 w-3.5" />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 bg-black/60 text-white hover:bg-black/80 hover:text-white p-0 rounded touch-manipulation"
+                      disabled={index === images.length - 1}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveImage(index, 'right');
+                      }}
+                      title="Move Right"
+                    >
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  {/* Badges */}
+                  <div className="absolute top-1 right-1 flex items-center gap-1">
+                    {isSelected && (
+                      <span className="text-[9px] sm:text-[10px] bg-primary text-primary-foreground font-semibold px-1 py-0.5 rounded shadow-xs">
+                        Active
+                      </span>
+                    )}
+                    <span className="text-[9px] sm:text-[10px] bg-black/70 text-white rounded px-1.5 py-0.5 font-medium">
+                      #{index + 1}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quick actions */}
+                <div className="p-1.5 flex items-center justify-between gap-1 border-t bg-card text-xs">
+                  <p className="text-[11px] font-medium text-foreground truncate flex-1">
+                    {img.file.name}
+                  </p>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCroppingImage(img);
+                      }}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors touch-manipulation"
+                      title="Crop Image"
+                    >
+                      <Crop className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        rotateImage(img.id, 90);
+                      }}
+                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors touch-manipulation"
+                      title="Rotate 90°"
+                    >
+                      <RotateCw className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeImage(img.id);
+                      }}
+                      className="p-1 rounded hover:bg-destructive/10 text-destructive transition-colors touch-manipulation"
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Add more files dropzone */}
+        <div className="pt-2">
           <FileUploader
             accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
             multiple
             maxFiles={50}
             maxSize={50 * 1024 * 1024}
             onFilesSelected={handleFilesSelected}
-            label={images.length > 0 ? 'Add More Images' : 'Upload Images'}
+            label="Add More Images"
+            description="Drag & drop or tap to browse"
+            showFileList={false}
+          />
+        </div>
+
+        {isMobile && (
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 mt-2"
+            onClick={generatePdf}
+            disabled={images.length === 0 || isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating PDF...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Generate & Download PDF
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
+      {/* Header (Desktop + Initial Mobile) */}
+      <div className={cn('text-center mb-6 sm:mb-8', images.length > 0 && 'hidden sm:block')}>
+        <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-blue-500/10 mb-3 sm:mb-4">
+          <FileImage className="h-7 w-7 sm:h-8 sm:w-8 text-blue-500" />
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Image to PDF</h1>
+        <p className="text-muted-foreground mt-2 max-w-lg mx-auto text-xs sm:text-sm">
+          Convert your images to a single PDF document. Select any image to crop,
+          apply filters, and preview live page layout before generating.
+        </p>
+      </div>
+
+      {/* Compact Mobile Top Bar when images are present */}
+      {images.length > 0 && (
+        <div className="sm:hidden flex items-center justify-between pb-2 mb-2 border-b">
+          <div className="flex items-center gap-2">
+            <div className="p-1 rounded-md bg-blue-500/10 text-blue-500">
+              <FileImage className="h-4 w-4" />
+            </div>
+            <h1 className="text-sm font-bold leading-none">Image to PDF</h1>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+              {images.length} {images.length === 1 ? 'image' : 'images'}
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearAll}
+            className="h-6 text-[11px] text-destructive hover:bg-destructive/10 px-2"
+          >
+            <Trash2 className="h-3 w-3 mr-1" />
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {/* Main Workspace Content */}
+      {images.length === 0 ? (
+        <div className="max-w-xl mx-auto py-6">
+          <FileUploader
+            accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+            multiple
+            maxFiles={50}
+            maxSize={50 * 1024 * 1024}
+            onFilesSelected={handleFilesSelected}
+            label="Upload Images"
             description="Drag & drop JPG, PNG, or WEBP images here"
             showFileList={false}
           />
+        </div>
+      ) : (
+        <>
+          {/* MOBILE VIEW (lg:hidden): Compact preview pinned at top with tab switcher */}
+          <div className="lg:hidden space-y-3">
+            {/* 1. Compact Live Page Preview (Always on top so it is visible with zero scroll!) */}
+            {renderPreviewCard(true)}
 
-          {images.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold">
-                    {images.length} image{images.length !== 1 ? 's' : ''} added
-                  </p>
-                  <span className="text-xs text-muted-foreground">
-                    (Click an image to preview & edit)
-                  </span>
-                </div>
-                <Button variant="outline" size="sm" onClick={clearAll} className="h-8 text-xs">
-                  <Trash2 className="h-3.5 w-3.5 mr-1.5 text-destructive" />
-                  Clear All
-                </Button>
-              </div>
+            {/* 2. Mobile Mode Tab Bar */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-xl text-xs font-medium border shadow-xs">
+              <button
+                type="button"
+                onClick={() => setMobileTab('edit')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  mobileTab === 'edit'
+                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Paintbrush className="h-3.5 w-3.5 text-blue-500" />
+                <span className="truncate">Filters & Edit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('settings')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  mobileTab === 'settings'
+                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Settings2 className="h-3.5 w-3.5 text-blue-500" />
+                <span className="truncate">PDF Settings</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('images')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  mobileTab === 'images'
+                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <FileImage className="h-3.5 w-3.5 text-blue-500" />
+                <span className="truncate">Images ({images.length})</span>
+              </button>
+            </div>
 
-              {/* Added Images Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {images.map((img, index) => {
-                  const isSelected = img.id === selectedImage?.id;
-                  return (
-                    <div
-                      key={img.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDragEnd={handleDragEnd}
-                      onDrop={(e) => handleDrop(e, index)}
-                      onClick={() => setSelectedImageId(img.id)}
-                      className={cn(
-                        'group relative rounded-lg border bg-card overflow-hidden transition-all cursor-pointer select-none',
-                        isSelected
-                          ? 'ring-2 ring-primary border-primary shadow-md bg-primary/5'
-                          : 'hover:border-primary/50',
-                        dragOverIndex === index && 'ring-2 ring-primary border-primary',
-                        draggedIndex === index && 'opacity-50'
-                      )}
-                    >
-                      {/* Thumbnail container */}
-                      <div className="aspect-square relative overflow-hidden bg-muted/40">
-                        <img
-                          src={img.dataUrl}
-                          alt={img.file.name}
-                          className="w-full h-full object-cover transition-transform"
-                          style={{
-                            filter: getFilterString(img),
-                            transform: `rotate(${img.rotation}deg) scaleX(${
-                              img.flipH ? -1 : 1
-                            }) scaleY(${img.flipV ? -1 : 1})`,
-                          }}
-                        />
-
-                        {/* Top-left reordering & drag */}
-                        <div className="absolute top-1 left-1 flex items-center gap-0.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 bg-black/60 text-white hover:bg-black/80 hover:text-white p-0 rounded sm:hidden touch-manipulation"
-                            disabled={index === 0}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              moveImage(index, 'left');
-                            }}
-                            title="Move Left"
-                          >
-                            <ChevronLeft className="h-3 w-3" />
-                          </Button>
-                          <div className="bg-black/60 text-white rounded p-0.5 hidden sm:block opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
-                            <GripVertical className="h-3.5 w-3.5" />
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 bg-black/60 text-white hover:bg-black/80 hover:text-white p-0 rounded sm:hidden touch-manipulation"
-                            disabled={index === images.length - 1}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              moveImage(index, 'right');
-                            }}
-                            title="Move Right"
-                          >
-                            <ChevronRight className="h-3 w-3" />
-                          </Button>
-                        </div>
-
-                        {/* Badges: Page Number and Active State */}
-                        <div className="absolute top-1 right-1 flex items-center gap-1">
-                          {isSelected && (
-                            <span className="text-[10px] bg-primary text-primary-foreground font-semibold px-1.5 py-0.5 rounded shadow-xs">
-                              Previewing
-                            </span>
-                          )}
-                          <span className="text-[10px] bg-black/70 text-white rounded px-1.5 py-0.5 font-medium">
-                            #{index + 1}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* File Name & Quick Actions */}
-                      <div className="p-2 flex items-center justify-between gap-1 border-t bg-card">
-                        <p className="text-[11px] font-medium text-foreground truncate flex-1">
-                          {img.file.name}
-                        </p>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setCroppingImage(img);
-                            }}
-                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                            title="Crop Image"
-                          >
-                            <Crop className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              rotateImage(img.id, 90);
-                            }}
-                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                            title="Rotate 90°"
-                          >
-                            <RotateCw className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeImage(img.id);
-                            }}
-                            className="p-1 rounded hover:bg-destructive/10 text-destructive transition-colors"
-                            title="Remove"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Selected Image Edit & Filter Panel */}
-              {selectedImage && (
-                <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-4 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="p-1.5 bg-primary/10 text-primary rounded-md">
-                        <Paintbrush className="h-4 w-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-semibold truncate">
-                          Edit Selected: {selectedImage.file.name}
-                        </h3>
-                        <p className="text-[11px] text-muted-foreground">
-                          Changes update real-time in the PDF preview
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {images.length > 1 && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="h-7 text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
-                          onClick={applyFiltersToAll}
-                          title="Apply current brightness, contrast, saturation, blur, grayscale, sepia, and invert to all images"
-                        >
-                          <Layers className="h-3.5 w-3.5 mr-1" />
-                          Apply Filters to All ({images.length})
-                        </Button>
-                      )}
-                      {selectedImage.hasCrop && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs text-orange-600 border-orange-300 hover:bg-orange-50"
-                          onClick={() => resetCrop(selectedImage.id)}
-                        >
-                          <RefreshCw className="h-3 w-3 mr-1" />
-                          Reset Crop
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-muted-foreground"
-                        onClick={() => resetAdjustments(selectedImage.id)}
-                      >
-                        Reset Filters
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Transform buttons: Crop, Rotate, Flip */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="h-8 text-xs font-medium"
-                      onClick={() => setCroppingImage(selectedImage)}
-                    >
-                      <Crop className="h-3.5 w-3.5 mr-1.5" />
-                      Crop Image
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => rotateImage(selectedImage.id, -90)}
-                      title="Rotate Left 90°"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                      Rotate Left
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => rotateImage(selectedImage.id, 90)}
-                      title="Rotate Right 90°"
-                    >
-                      <RotateCw className="h-3.5 w-3.5 mr-1" />
-                      Rotate Right
-                    </Button>
-                    <Button
-                      variant={selectedImage.flipH ? 'default' : 'outline'}
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => toggleFlip(selectedImage.id, 'H')}
-                    >
-                      <FlipHorizontal className="h-3.5 w-3.5 mr-1" />
-                      Flip H
-                    </Button>
-                    <Button
-                      variant={selectedImage.flipV ? 'default' : 'outline'}
-                      size="sm"
-                      className="h-8 text-xs"
-                      onClick={() => toggleFlip(selectedImage.id, 'V')}
-                    >
-                      <FlipVertical className="h-3.5 w-3.5 mr-1" />
-                      Flip V
-                    </Button>
-                  </div>
-
-                  {/* Filter Sliders */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs">
-                        <Label>Brightness</Label>
-                        <span className="text-muted-foreground">
-                          {selectedImage.brightness}%
-                        </span>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={200}
-                        step={1}
-                        value={[selectedImage.brightness]}
-                        onValueChange={([v]) =>
-                          updateImageAdjustment(selectedImage.id, 'brightness', v)
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs">
-                        <Label>Contrast</Label>
-                        <span className="text-muted-foreground">
-                          {selectedImage.contrast}%
-                        </span>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={200}
-                        step={1}
-                        value={[selectedImage.contrast]}
-                        onValueChange={([v]) =>
-                          updateImageAdjustment(selectedImage.id, 'contrast', v)
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs">
-                        <Label>Saturation</Label>
-                        <span className="text-muted-foreground">
-                          {selectedImage.saturation}%
-                        </span>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={200}
-                        step={1}
-                        value={[selectedImage.saturation]}
-                        onValueChange={([v]) =>
-                          updateImageAdjustment(selectedImage.id, 'saturation', v)
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs">
-                        <Label>Blur</Label>
-                        <span className="text-muted-foreground">
-                          {selectedImage.blur}px
-                        </span>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={10}
-                        step={1}
-                        value={[selectedImage.blur]}
-                        onValueChange={([v]) =>
-                          updateImageAdjustment(selectedImage.id, 'blur', v)
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  {/* Color Filter Toggles & Batch Apply */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t text-xs">
-                    <div className="flex flex-wrap items-center gap-6">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id="grayscale-toggle"
-                          checked={selectedImage.grayscale}
-                          onCheckedChange={(v) =>
-                            updateImageAdjustment(selectedImage.id, 'grayscale', v)
-                          }
-                        />
-                        <Label htmlFor="grayscale-toggle" className="cursor-pointer">
-                          Grayscale
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id="sepia-toggle"
-                          checked={selectedImage.sepia}
-                          onCheckedChange={(v) =>
-                            updateImageAdjustment(selectedImage.id, 'sepia', v)
-                          }
-                        />
-                        <Label htmlFor="sepia-toggle" className="cursor-pointer">
-                          Sepia
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id="invert-toggle"
-                          checked={selectedImage.invert}
-                          onCheckedChange={(v) =>
-                            updateImageAdjustment(selectedImage.id, 'invert', v)
-                          }
-                        />
-                        <Label htmlFor="invert-toggle" className="cursor-pointer">
-                          Invert
-                        </Label>
-                      </div>
-                    </div>
-
-                    {images.length > 1 && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs font-medium border-primary/40 text-primary hover:bg-primary/10 ml-auto"
-                        onClick={applyFiltersToAll}
-                        title="Copy current brightness, contrast, saturation, blur, grayscale, sepia, and invert to all images"
-                      >
-                        <Layers className="h-3.5 w-3.5 mr-1.5" />
-                        Apply Filters to All Images
-                      </Button>
-                    )}
-                  </div>
+            {/* 3. Active Tab Content rendered directly beneath preview */}
+            <div>
+              {mobileTab === 'edit' && renderEditPanel(true)}
+              {mobileTab === 'settings' && renderPdfSettings(true)}
+              {mobileTab === 'images' && (
+                <div className="rounded-xl border bg-card p-3 shadow-xs">
+                  {renderImagesList(true)}
                 </div>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Right Column: Live PDF Page Preview & Settings */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Live Page Preview Card */}
-          <div className="rounded-xl border bg-card p-4 sm:p-5 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-blue-500" />
-                <h2 className="text-sm font-semibold">Live PDF Page Preview</h2>
-              </div>
-              <Badge variant="outline" className="text-[11px] bg-primary/10 text-primary border-primary/20">
-                Real-Time
-              </Badge>
-            </div>
-
-            {images.length > 0 && selectedImage ? (
-              <div className="space-y-3">
-                {/* Page pagination controls */}
-                <div className="flex items-center justify-between text-xs bg-muted/40 p-1.5 rounded-lg border">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    disabled={selectedIndex <= 0}
-                    onClick={() =>
-                      setSelectedImageId(images[selectedIndex - 1].id)
-                    }
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-                    Prev Page
-                  </Button>
-                  <span className="font-semibold text-foreground">
-                    Page {selectedIndex + 1} of {images.length}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    disabled={selectedIndex >= images.length - 1}
-                    onClick={() =>
-                      setSelectedImageId(images[selectedIndex + 1].id)
-                    }
-                  >
-                    Next Page
-                    <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                  </Button>
-                </div>
-
-                {/* Responsive PDF Paper Preview Container */}
-                <div className="flex items-center justify-center p-3 sm:p-4 bg-muted/30 border rounded-lg overflow-hidden min-h-[360px]">
-                  <div
-                    className="relative shadow-lg rounded border overflow-hidden transition-all duration-150 flex items-center justify-center select-none"
-                    style={{
-                      backgroundColor: bgColor,
-                      aspectRatio: `${pageDims.width} / ${pageDims.height}`,
-                      width: orientation === 'portrait' ? '300px' : '420px',
-                      maxWidth: '100%',
-                      maxHeight: '460px',
-                    }}
-                  >
-                    {/* Inner Margin Boundary Area */}
-                    <div
-                      className="absolute inset-0 flex items-center justify-center overflow-hidden"
-                      style={{
-                        padding: `${(margin / Math.max(pageDims.width, pageDims.height)) * 100}%`,
-                      }}
-                    >
-                      {/* Margin dashed border guide */}
-                      {margin > 0 && (
-                        <div
-                          className="absolute pointer-events-none border border-dashed border-black/20 dark:border-white/25"
-                          style={{
-                            inset: `${(margin / Math.max(pageDims.width, pageDims.height)) * 100}%`,
-                          }}
-                        />
-                      )}
-
-                      {/* Filtered & Transformed Image */}
-                      <div
-                        className={cn(
-                          'w-full h-full flex items-center justify-center overflow-hidden',
-                          fitMode === 'fill' ? 'relative' : ''
-                        )}
-                      >
-                        <img
-                          src={selectedImage.dataUrl}
-                          alt={selectedImage.file.name}
-                          style={{
-                            filter: getFilterString(selectedImage),
-                            transform: `rotate(${selectedImage.rotation}deg) scaleX(${
-                              selectedImage.flipH ? -1 : 1
-                            }) scaleY(${selectedImage.flipV ? -1 : 1})`,
-                          }}
-                          className={cn(
-                            'transition-transform duration-75 block',
-                            fitMode === 'fit'
-                              ? 'max-w-full max-h-full object-contain'
-                              : fitMode === 'fill'
-                              ? 'w-full h-full object-cover'
-                              : 'max-w-none'
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Page details badge */}
-                <p className="text-[11px] text-center text-muted-foreground">
-                  {pageSize} ({orientation}) • Fit: {fitMode === 'fit' ? 'Fit to Page' : fitMode === 'fill' ? 'Fill Page' : 'Original'} • Margin: {margin}pt
-                </p>
-              </div>
-            ) : (
-              <div className="py-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-2">
-                <FileImage className="h-8 w-8 text-muted-foreground/40" />
-                <p className="text-xs">Upload images to preview your PDF pages live</p>
-              </div>
-            )}
           </div>
 
-          {/* PDF Settings */}
-          <div className="rounded-xl border bg-card p-5 space-y-5 shadow-sm">
-            <div className="flex items-center gap-2 text-sm font-semibold border-b pb-3">
-              <Settings2 className="h-4 w-4 text-primary" />
-              <span>PDF Settings</span>
-            </div>
-
-            {/* Page Size */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Page Size</Label>
-              <Select
-                value={pageSize}
-                onValueChange={(v) => setPageSize(v as PageSize)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A4">A4 (210 × 297 mm)</SelectItem>
-                  <SelectItem value="A3">A3 (297 × 420 mm)</SelectItem>
-                  <SelectItem value="Letter">Letter (8.5 × 11 in)</SelectItem>
-                  <SelectItem value="Legal">Legal (8.5 × 14 in)</SelectItem>
-                  <SelectItem value="Custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Custom Size Inputs */}
-            {pageSize === 'Custom' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Width (pt)</Label>
-                  <Input
-                    type="number"
-                    min={72}
-                    max={4000}
-                    value={customWidth}
-                    onChange={(e) =>
-                      setCustomWidth(Number(e.target.value) || 595)
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Height (pt)</Label>
-                  <Input
-                    type="number"
-                    min={72}
-                    max={4000}
-                    value={customHeight}
-                    onChange={(e) =>
-                      setCustomHeight(Number(e.target.value) || 842)
-                    }
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Orientation */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Orientation</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOrientation('portrait')}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-md border p-2.5 text-xs font-medium transition-colors touch-manipulation',
-                    orientation === 'portrait'
-                      ? 'border-primary bg-primary/10 text-primary font-semibold'
-                      : 'border-muted hover:border-primary/50'
-                  )}
-                >
-                  <div className="w-5 h-7 rounded-xs border-2 border-current" />
-                  Portrait
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOrientation('landscape')}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-md border p-2.5 text-xs font-medium transition-colors touch-manipulation',
-                    orientation === 'landscape'
-                      ? 'border-primary bg-primary/10 text-primary font-semibold'
-                      : 'border-muted hover:border-primary/50'
-                  )}
-                >
-                  <div className="w-7 h-5 rounded-xs border-2 border-current" />
-                  Landscape
-                </button>
-              </div>
-            </div>
-
-            {/* Fit Mode */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Image Fit</Label>
-              <Select
-                value={fitMode}
-                onValueChange={(v) => setFitMode(v as FitMode)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fit">Fit to Page (Keep Aspect Ratio)</SelectItem>
-                  <SelectItem value="fill">Fill Page (Crop Overflow)</SelectItem>
-                  <SelectItem value="original">Original Proportions</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Margin */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <Label>Margin</Label>
-                <span className="text-muted-foreground">{margin} pt</span>
-              </div>
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                value={[margin]}
-                onValueChange={([v]) => setMargin(v)}
+          {/* DESKTOP VIEW (hidden lg:grid lg:grid-cols-12 gap-8) */}
+          <div className="hidden lg:grid lg:grid-cols-12 gap-8">
+            {/* Left Column: Uploader, Images Grid, and Edit Selected Image */}
+            <div className="lg:col-span-7 space-y-6">
+              <FileUploader
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                multiple
+                maxFiles={50}
+                maxSize={50 * 1024 * 1024}
+                onFilesSelected={handleFilesSelected}
+                label="Add More Images"
+                description="Drag & drop JPG, PNG, or WEBP images here"
+                showFileList={false}
               />
+              {renderImagesList(false)}
+              {renderEditPanel(false)}
             </div>
 
-            {/* Background Color */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Background Color</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="w-10 h-10 rounded-md border cursor-pointer bg-transparent p-0.5"
-                />
-                <Input
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="flex-1 text-xs"
-                  maxLength={7}
-                />
-              </div>
+            {/* Right Column: Live PDF Page Preview & Settings */}
+            <div className="lg:col-span-5 space-y-6">
+              {renderPreviewCard(false)}
+              {renderPdfSettings(false)}
             </div>
-
-            {/* Image Quality */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <Label>Export Quality</Label>
-                <span className="text-muted-foreground">
-                  {Math.round(quality * 100)}%
-                </span>
-              </div>
-              <Slider
-                min={10}
-                max={100}
-                step={5}
-                value={[Math.round(quality * 100)]}
-                onValueChange={([v]) => setQuality(v / 100)}
-              />
-            </div>
-
-            {/* Generate Button */}
-            <Button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              size="lg"
-              onClick={generatePdf}
-              disabled={images.length === 0 || isGenerating}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating PDF...
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 mr-2" />
-                  Generate & Download PDF
-                </>
-              )}
-            </Button>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Interactive Crop Modal */}
       <ImageCropModal

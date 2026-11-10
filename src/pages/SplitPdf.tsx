@@ -59,9 +59,20 @@ export default function SplitPdf() {
           setRangeInput(`1-${count}`);
         }
 
-        // Render thumbnails
+        // Render thumbnails progressively
+        setThumbnails(new Array(count).fill(''));
         try {
-          const thumbs = await renderAllPages(new Uint8Array(buffer.slice(0)), 0.4);
+          const thumbs = await renderAllPages(
+            new Uint8Array(buffer.slice(0)),
+            0.4,
+            (current, _, dataUrl) => {
+              setThumbnails((prev) => {
+                const next = [...prev];
+                next[current - 1] = dataUrl;
+                return next;
+              });
+            }
+          );
           setThumbnails(thumbs);
         } catch (err) {
           console.error('Error generating thumbnails', err);
@@ -97,6 +108,16 @@ export default function SplitPdf() {
     setSelectedPages(new Array(pageCount).fill(false));
   };
 
+  const selectOdd = () => {
+    setSelectedPages(Array.from({ length: pageCount }, (_, i) => i % 2 === 0));
+    toast.info('Selected odd pages (1, 3, 5...)');
+  };
+
+  const selectEven = () => {
+    setSelectedPages(Array.from({ length: pageCount }, (_, i) => i % 2 === 1));
+    toast.info('Selected even pages (2, 4, 6...)');
+  };
+
   // Mode 1: Extract selected pages into one PDF
   const handleExtractSelected = async () => {
     if (!pdfData || !file) return;
@@ -119,7 +140,10 @@ export default function SplitPdf() {
       const pdfBytes = await newDoc.save();
       const blob = createPdfBlob(pdfBytes);
       const baseName = file.name.replace(/\.[^/.]+$/, '');
-      downloadBlob(blob, `${baseName}-extracted.pdf`);
+      const pageLabel = selectedIndices.length <= 3
+        ? `pages_${selectedIndices.map(i => i + 1).join('_')}`
+        : `pages_${selectedIndices[0] + 1}_to_${selectedIndices[selectedIndices.length - 1] + 1}`;
+      downloadBlob(blob, `${baseName}_extracted_${pageLabel}.pdf`);
       toast.success(`Successfully extracted ${selectedIndices.length} pages!`);
     } catch (err) {
       console.error('Failed to extract pages', err);
@@ -148,7 +172,7 @@ export default function SplitPdf() {
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
-      downloadBlob(zipBlob, `${baseName}-all-pages.zip`);
+      downloadBlob(zipBlob, `${baseName}_all_${pageCount}_pages.zip`);
       toast.success(`Successfully split into ${pageCount} separate PDFs!`);
     } catch (err) {
       console.error('Failed to split all pages', err);
@@ -267,9 +291,34 @@ export default function SplitPdf() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* File summary banner */}
-          <Card>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Mobile Compact File Header */}
+          <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0">
+                PDF
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold truncate max-w-[170px]">{file.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {pageCount} {pageCount === 1 ? 'page' : 'pages'} • {formatFileSize(file.size)}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[11px] px-2"
+              onClick={handleReset}
+              disabled={loading || processing}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Change
+            </Button>
+          </div>
+
+          {/* Desktop File Header */}
+          <Card className="hidden sm:block">
             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold">
@@ -326,19 +375,25 @@ export default function SplitPdf() {
                         Click thumbnails to select pages. Selected pages will be combined into a new single PDF.
                       </CardDescription>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={selectAll} className="text-xs">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <Button variant="outline" size="sm" onClick={selectAll} className="text-xs h-7 sm:h-8 px-2 sm:px-3">
                         <CheckSquare className="h-3.5 w-3.5 mr-1" />
-                        Select All
+                        All
                       </Button>
-                      <Button variant="outline" size="sm" onClick={deselectAll} className="text-xs">
+                      <Button variant="outline" size="sm" onClick={selectOdd} className="text-xs h-7 sm:h-8 px-2">
+                        Odd (1,3..)
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={selectEven} className="text-xs h-7 sm:h-8 px-2">
+                        Even (2,4..)
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={deselectAll} className="text-xs h-7 sm:h-8 px-2 sm:px-3">
                         <Square className="h-3.5 w-3.5 mr-1" />
                         Clear
                       </Button>
                       <Button
                         onClick={handleExtractSelected}
                         disabled={selectedCount === 0 || processing}
-                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm"
+                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm h-8 px-3"
                       >
                         {processing ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
@@ -487,6 +542,30 @@ export default function SplitPdf() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* Mobile Floating Action Bar for Quick Extract */}
+          {activeTab === 'extract' && selectedCount > 0 && (
+            <div className="sm:hidden fixed bottom-4 left-3 right-3 z-40">
+              <div className="bg-card/95 backdrop-blur-md border border-orange-500/40 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold pl-1">
+                  <span>{selectedCount} of {pageCount} selected</span>
+                </div>
+                <Button
+                  onClick={handleExtractSelected}
+                  disabled={processing}
+                  size="sm"
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs h-8 px-3 shadow-xs"
+                >
+                  {processing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Extract PDF
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

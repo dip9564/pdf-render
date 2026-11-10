@@ -1,0 +1,18 @@
+{
+  "name": "PDF Render — Client-Side PDF Suite",
+  "short_name": "PDF Render",
+  "description": "Fast, 100% private and client-side PDF editing, merging, splitting, converting, and watermarking directly in your browser.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#090d16",
+  "theme_color": "#6366F1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Production build output
+dist/
+
+# TypeScript build metadata
+*.tsbuildinfo
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs and debug output
+*.log
+logs/
+
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# Vercel local project metadata
+.vercel/

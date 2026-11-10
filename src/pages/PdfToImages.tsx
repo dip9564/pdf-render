@@ -59,8 +59,19 @@ export default function PdfToImages() {
         setPageCount(count);
         setSelectedPages(new Array(count).fill(true)); // Select all by default
 
+        setThumbnails(new Array(count).fill(''));
         try {
-          const thumbs = await renderAllPages(new Uint8Array(buffer.slice(0)), 0.35);
+          const thumbs = await renderAllPages(
+            new Uint8Array(buffer.slice(0)),
+            0.35,
+            (current, _, dataUrl) => {
+              setThumbnails((prev) => {
+                const next = [...prev];
+                next[current - 1] = dataUrl;
+                return next;
+              });
+            }
+          );
           setThumbnails(thumbs);
         } catch (e) {
           console.error('Error rendering thumbnails', e);
@@ -89,6 +100,14 @@ export default function PdfToImages() {
 
   const selectAll = () => setSelectedPages(new Array(pageCount).fill(true));
   const deselectAll = () => setSelectedPages(new Array(pageCount).fill(false));
+  const selectOdd = () => {
+    setSelectedPages(Array.from({ length: pageCount }, (_, i) => i % 2 === 0));
+    toast.info('Selected odd pages (1, 3, 5...)');
+  };
+  const selectEven = () => {
+    setSelectedPages(Array.from({ length: pageCount }, (_, i) => i % 2 === 1));
+    toast.info('Selected even pages (2, 4, 6...)');
+  };
 
   const handleConvert = async () => {
     if (!pdfData || !file) return;
@@ -208,9 +227,34 @@ export default function PdfToImages() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* File details card */}
-          <Card>
+        <div className="space-y-4 sm:space-y-6">
+          {/* Mobile Compact File Header */}
+          <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 rounded-md bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold text-xs shrink-0">
+                PDF
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold truncate max-w-[170px]">{file.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {pageCount} {pageCount === 1 ? 'page' : 'pages'} • {formatFileSize(file.size)}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[11px] px-2"
+              onClick={handleReset}
+              disabled={loading || converting}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Change
+            </Button>
+          </div>
+
+          {/* Desktop File details card */}
+          <Card className="hidden sm:block">
             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold">
@@ -270,9 +314,9 @@ export default function PdfToImages() {
                       <SelectValue placeholder="Select resolution" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="1.0">Standard (72 DPI - Fast)</SelectItem>
-                      <SelectItem value="2.0">High Definition (150 DPI - Recommended)</SelectItem>
-                      <SelectItem value="3.0">Ultra HD (300 DPI - Print Quality)</SelectItem>
+                      <SelectItem value="1">Standard (72 DPI - Fast)</SelectItem>
+                      <SelectItem value="2">High Definition (150 DPI - Recommended)</SelectItem>
+                      <SelectItem value="3">Ultra HD (300 DPI - Print Quality)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -280,12 +324,18 @@ export default function PdfToImages() {
 
               {/* Page Selection Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={selectAll} className="text-xs">
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <Button variant="outline" size="sm" onClick={selectAll} className="text-xs h-7 sm:h-8 px-2 sm:px-3">
                     <CheckSquare className="h-3.5 w-3.5 mr-1" />
-                    Select All
+                    All
                   </Button>
-                  <Button variant="outline" size="sm" onClick={deselectAll} className="text-xs">
+                  <Button variant="outline" size="sm" onClick={selectOdd} className="text-xs h-7 sm:h-8 px-2">
+                    Odd (1,3..)
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={selectEven} className="text-xs h-7 sm:h-8 px-2">
+                    Even (2,4..)
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={deselectAll} className="text-xs h-7 sm:h-8 px-2 sm:px-3">
                     <Square className="h-3.5 w-3.5 mr-1" />
                     Clear
                   </Button>
@@ -422,6 +472,30 @@ export default function PdfToImages() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Mobile Floating Action Bar for Quick Convert */}
+          {selectedCount > 0 && convertedImages.length === 0 && (
+            <div className="sm:hidden fixed bottom-4 left-3 right-3 z-40">
+              <div className="bg-card/95 backdrop-blur-md border border-teal-500/40 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold pl-1">
+                  <span>{selectedCount} of {pageCount} pages</span>
+                </div>
+                <Button
+                  onClick={handleConvert}
+                  disabled={converting}
+                  size="sm"
+                  className="bg-teal-600 hover:bg-teal-700 text-white text-xs h-8 px-3 shadow-xs"
+                >
+                  {converting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  ) : (
+                    <ImageIcon className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Convert to {format.toUpperCase()}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       )}
