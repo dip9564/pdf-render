@@ -19,13 +19,16 @@ import {
   ShieldCheck,
   AlignLeft,
   ArrowRightLeft,
+  GraduationCap,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { recordRecentToolFromRoute } from '@/lib/toolsRegistry';
 
 const navItems = [
   { path: '/', label: 'Home', icon: Home, color: 'text-indigo-500' },
+  { path: '/front-page', label: 'Front Page Generator', icon: GraduationCap, color: 'text-amber-500' },
   { path: '/image-to-pdf', label: 'Image to PDF', icon: FileImage, color: 'text-blue-500' },
   { path: '/image-editor', label: 'Image Editor', icon: Paintbrush, color: 'text-purple-500' },
   { path: '/merge-pdf', label: 'Merge PDF', icon: Merge, color: 'text-green-500' },
@@ -54,10 +57,11 @@ export function Header() {
 
   const location = useLocation();
 
-  // Close mobile drawer whenever route changes
+  // Close mobile drawer whenever route changes and record tool usage
   useEffect(() => {
     setMobileMenuOpen(false);
-  }, [location.pathname]);
+    recordRecentToolFromRoute(location.pathname, location.search);
+  }, [location.pathname, location.search]);
 
   // Sync theme with <html> class and localStorage
   useEffect(() => {
@@ -210,7 +214,7 @@ export function Footer() {
           <span>© {new Date().getFullYear()} <strong className="font-semibold text-foreground">PDF Render</strong></span>
           <span className="hidden sm:inline text-muted-foreground/40">•</span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted border text-foreground/80">
-            v1.2.0
+            v1.3.1
           </span>
           <span className="hidden sm:inline text-muted-foreground/40">•</span>
           <span>100% Client-Side & Private</span>

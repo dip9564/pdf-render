@@ -17,6 +17,7 @@ const PageNumbers = lazy(() => import('@/pages/PageNumbers'));
 const ProtectPdf = lazy(() => import('@/pages/ProtectPdf'));
 const ExtractText = lazy(() => import('@/pages/ExtractText'));
 const DocumentConverter = lazy(() => import('@/pages/DocumentConverter'));
+const FrontPageGenerator = lazy(() => import('@/pages/FrontPageGenerator'));
 
 function PageLoading() {
   return (
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/protect-pdf" element={<ProtectPdf />} />
           <Route path="/extract-text" element={<ExtractText />} />
           <Route path="/convert" element={<DocumentConverter />} />
+          <Route path="/front-page" element={<FrontPageGenerator />} />
           <Route path="/word-to-pdf" element={<DocumentConverter initialTab="word-to-pdf" />} />
           <Route path="/pdf-to-word" element={<DocumentConverter initialTab="pdf-to-word" />} />
           <Route path="/pdf-to-excel" element={<DocumentConverter initialTab="pdf-to-excel" />} />
