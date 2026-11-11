@@ -372,7 +372,7 @@ export function Footer() {
           </span>
           <span className="hidden sm:inline text-muted-foreground/40">•</span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-secondary dark:bg-secondary border border-border text-foreground/85">
-            v1.3.1
+            v1.3.2
           </span>
           <span className="hidden sm:inline text-muted-foreground/40">•</span>
           <span>100% Client-Side &amp; Private</span>
