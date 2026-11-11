@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
+import { pdfjsLib } from '@/lib/pdfWorker';
 import JSZip from 'jszip';
 import { toast } from 'sonner';
 import {

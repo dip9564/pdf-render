@@ -23,9 +23,11 @@
     "browser-image-compression": "^2.0.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "docx": "^9.15.3",
     "fabric": "^5.3.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.424.0",
+    "mammoth": "^1.13.0",
     "pdf-lib": "^1.17.1",
     "pdf-lib-encrypt": "^1.0.3",
     "pdfjs-dist": "^3.11.174",
@@ -34,6 +36,8 @@
     "react-router-dom": "^6.26.0",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.4.0",
+    "tesseract.js": "^7.0.0",
+    "xlsx": "^0.18.5",
     "zustand": "^4.5.4"
   },
   "devDependencies": {

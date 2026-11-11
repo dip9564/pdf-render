@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import { pdfjsLib } from '@/lib/pdfWorker';
 
 export function usePdfRenderer() {
   const renderPage = useCallback(

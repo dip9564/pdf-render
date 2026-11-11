@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
+import { pdfjsLib } from '@/lib/pdfWorker';
+import { createWorker } from 'tesseract.js';
 import {
   FileText,
   Copy,
@@ -8,15 +9,23 @@ import {
   Loader2,
   RefreshCw,
   Search,
-  BookOpen,
   FileCode,
-  AlignLeft,
+  Scan,
+  Sparkles,
+  AlertTriangle,
+  Languages,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FileUploader } from '@/components/shared/FileUploader';
 import { readFileAsArrayBuffer, formatFileSize } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -26,7 +35,21 @@ interface PageText {
   pageNumber: number;
   text: string;
   wordCount: number;
+  source: 'digital' | 'ocr' | 'empty';
+  isOcrRunning?: boolean;
 }
+
+const OCR_LANGUAGES = [
+  { code: 'eng', label: 'English' },
+  { code: 'spa', label: 'Spanish (Español)' },
+  { code: 'fra', label: 'French (Français)' },
+  { code: 'deu', label: 'German (Deutsch)' },
+  { code: 'ita', label: 'Italian (Italiano)' },
+  { code: 'por', label: 'Portuguese (Português)' },
+  { code: 'hin', label: 'Hindi (हिन्दी)' },
+  { code: 'chi_sim', label: 'Chinese (简体中文)' },
+  { code: 'jpn', label: 'Japanese (日本語)' },
+];
 
 export default function ExtractText() {
   const [file, setFile] = useState<File | null>(null);
@@ -36,6 +59,31 @@ export default function ExtractText() {
   const [copiedPageIdx, setCopiedPageIdx] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'pages' | 'all'>('pages');
+
+  // OCR States
+  const [ocrLanguage, setOcrLanguage] = useState<string>('eng');
+  const [isBatchOcrRunning, setIsBatchOcrRunning] = useState<boolean>(false);
+  const [batchProgress, setBatchProgress] = useState<{
+    current: number;
+    total: number;
+    percent: number;
+  } | null>(null);
+
+  // Render a PDF page onto an HTMLCanvasElement for OCR
+  const renderPdfPageToCanvas = async (
+    pdfDoc: any,
+    pageNum: number,
+    scale = 2.0
+  ): Promise<HTMLCanvasElement> => {
+    const page = await pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d')!;
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    return canvas;
+  };
 
   const handleFileSelected = useCallback(async (files: File[]) => {
     if (files.length === 0) return;
@@ -79,37 +127,162 @@ export default function ExtractText() {
 
         const pageRawText = lines.join('\n').trim();
         const words = pageRawText ? pageRawText.split(/\s+/).filter(Boolean).length : 0;
+        const isEmpty = !pageRawText || pageRawText.length < 5;
 
         extracted.push({
           pageNumber: i,
-          text: pageRawText || '(No selectable text found on this page)',
+          text: isEmpty ? '(No selectable digital text — scan with OCR below)' : pageRawText,
           wordCount: words,
+          source: isEmpty ? 'empty' : 'digital',
         });
       }
 
       setPagesText(extracted);
-      toast.success(`Extracted text from ${pdf.numPages} pages!`);
+      const emptyCount = extracted.filter((p) => p.source === 'empty').length;
+      if (emptyCount > 0) {
+        toast.info(
+          `Extracted text: ${emptyCount} of ${pdf.numPages} pages appear to be scanned. OCR is available below.`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success(`Extracted digital text from all ${pdf.numPages} pages!`);
+      }
     } catch (err) {
       console.error('Failed to extract text', err);
-      toast.error('Failed to extract text from document');
+      toast.error('Failed to parse document text');
       setFile(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Run OCR on a single specific page
+  const handleRunOcrSinglePage = async (pageIndex: number) => {
+    if (!file) return;
+
+    setPagesText((prev) =>
+      prev.map((p, idx) => (idx === pageIndex ? { ...p, isOcrRunning: true } : p))
+    );
+    toast.info(`Starting OCR recognition on Page ${pageIndex + 1}...`);
+
+    try {
+      const buffer = await readFileAsArrayBuffer(file);
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+      const canvas = await renderPdfPageToCanvas(pdf, pageIndex + 1, 2.0);
+
+      const worker = await createWorker(ocrLanguage);
+      const ret = await worker.recognize(canvas);
+      await worker.terminate();
+
+      const ocrText = ret.data.text.trim();
+      const words = ocrText ? ocrText.split(/\s+/).filter(Boolean).length : 0;
+
+      setPagesText((prev) =>
+        prev.map((p, idx) =>
+          idx === pageIndex
+            ? {
+                ...p,
+                text: ocrText || '(OCR Scan completed: No readable text detected)',
+                wordCount: words,
+                source: 'ocr',
+                isOcrRunning: false,
+              }
+            : p
+        )
+      );
+
+      toast.success(`OCR complete for Page ${pageIndex + 1}! (${words} words found)`);
+    } catch (err) {
+      console.error('OCR single page error:', err);
+      toast.error(`OCR failed on Page ${pageIndex + 1}`);
+      setPagesText((prev) =>
+        prev.map((p, idx) => (idx === pageIndex ? { ...p, isOcrRunning: false } : p))
+      );
+    }
+  };
+
+  // Run Batch OCR across all pages or scanned pages
+  const handleRunBatchOcr = async (onlyScannedPages = false) => {
+    if (!file || pagesText.length === 0) return;
+
+    const targets = onlyScannedPages
+      ? pagesText.filter((p) => p.source === 'empty')
+      : pagesText;
+
+    if (targets.length === 0) {
+      toast.info('No scanned pages found to process.');
+      return;
+    }
+
+    setIsBatchOcrRunning(true);
+    setBatchProgress({ current: 0, total: targets.length, percent: 0 });
+    toast.info(`Initializing OCR engine for ${targets.length} pages...`);
+
+    try {
+      const buffer = await readFileAsArrayBuffer(file);
+      const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+      const worker = await createWorker(ocrLanguage);
+
+      for (let i = 0; i < targets.length; i++) {
+        const targetPage = targets[i];
+        setBatchProgress({
+          current: i + 1,
+          total: targets.length,
+          percent: Math.round(((i + 1) / targets.length) * 100),
+        });
+
+        const canvas = await renderPdfPageToCanvas(pdf, targetPage.pageNumber, 2.0);
+        const ret = await worker.recognize(canvas);
+        const ocrText = ret.data.text.trim();
+        const words = ocrText ? ocrText.split(/\s+/).filter(Boolean).length : 0;
+
+        setPagesText((prev) =>
+          prev.map((p) =>
+            p.pageNumber === targetPage.pageNumber
+              ? {
+                  ...p,
+                  text: ocrText || '(OCR completed: No readable text detected)',
+                  wordCount: words,
+                  source: 'ocr',
+                }
+              : p
+          )
+        );
+      }
+
+      await worker.terminate();
+      toast.success(`Batch OCR scan complete for all ${targets.length} pages!`);
+    } catch (err) {
+      console.error('Batch OCR error:', err);
+      toast.error('Batch OCR encountered an error. Please try again.');
+    } finally {
+      setIsBatchOcrRunning(false);
+      setBatchProgress(null);
+    }
+  };
+
   // Total metrics
   const totalWords = useMemo(
     () => pagesText.reduce((acc, p) => acc + p.wordCount, 0),
     [pagesText]
   );
+  const scannedPagesCount = useMemo(
+    () => pagesText.filter((p) => p.source === 'empty').length,
+    [pagesText]
+  );
+  const ocrPagesCount = useMemo(
+    () => pagesText.filter((p) => p.source === 'ocr').length,
+    [pagesText]
+  );
+
   const fullDocumentText = useMemo(
     () =>
       pagesText
-        .map((p) => `--- Page ${p.pageNumber} ---\n\n${p.text}`)
+        .map((p) => `--- Page ${p.pageNumber} (${p.source.toUpperCase()}) ---\n\n${p.text}`)
         .join('\n\n'),
     [pagesText]
   );
+
   const fullMarkdownText = useMemo(
     () =>
       pagesText
@@ -173,10 +346,10 @@ export default function ExtractText() {
       <div className="mb-4 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2.5">
           <FileText className="h-7 w-7 text-sky-500" />
-          Extract Text & Markdown
+          Extract Text & OCR
         </h1>
         <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-          Extract raw text or clean Markdown from any PDF document without sending data to servers.
+          Extract digital text or run optical character recognition (OCR) on scanned documents — 100% in your browser.
         </p>
       </div>
 
@@ -187,8 +360,8 @@ export default function ExtractText() {
               accept=".pdf,application/pdf"
               multiple={false}
               onFilesSelected={handleFileSelected}
-              label="Select PDF to Extract Text"
-              description="Extracts all selectable text with page numbers & formatting"
+              label="Select PDF to Extract Text or OCR"
+              description="Extracts digital text or scans image PDFs with Tesseract OCR"
             />
           </CardContent>
         </Card>
@@ -201,13 +374,23 @@ export default function ExtractText() {
                 PDF
               </div>
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-md">{file.name}</p>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <p className="text-xs sm:text-sm font-semibold truncate max-w-[200px] sm:max-w-md">
+                  {file.name}
+                </p>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
                   <span>{pagesText.length} pages</span>
                   <span>•</span>
                   <span>{totalWords.toLocaleString()} words</span>
                   <span>•</span>
                   <span>{formatFileSize(file.size)}</span>
+                  {ocrPagesCount > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                        {ocrPagesCount} OCR scanned
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -221,12 +404,61 @@ export default function ExtractText() {
                 setPagesText([]);
                 setSearchQuery('');
               }}
-              disabled={loading}
+              disabled={loading || isBatchOcrRunning}
             >
               <RefreshCw className="h-3 w-3 mr-1" />
               Change Document
             </Button>
           </div>
+
+          {/* Scanned Document Alert Banner */}
+          {scannedPagesCount > 0 && !isBatchOcrRunning && (
+            <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-start sm:items-center gap-2 min-w-0">
+                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5 sm:mt-0" />
+                <div className="text-xs">
+                  <p className="font-semibold text-foreground">
+                    Scanned PDF Pages Detected ({scannedPagesCount} pages without digital text)
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    These pages contain images rather than selectable text. Run OCR to recognize the characters.
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 px-3 shrink-0 self-end sm:self-auto touch-manipulation"
+                onClick={() => handleRunBatchOcr(true)}
+              >
+                <Scan className="h-3.5 w-3.5 mr-1.5" />
+                OCR Scanned Pages ({scannedPagesCount})
+              </Button>
+            </div>
+          )}
+
+          {/* Batch OCR Progress Indicator */}
+          {isBatchOcrRunning && batchProgress && (
+            <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/10 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+                  <span className="font-semibold">
+                    Running OCR Scanner on Page {batchProgress.current} of {batchProgress.total}...
+                  </span>
+                </div>
+                <span className="font-bold text-sky-600 dark:text-sky-400">
+                  {batchProgress.percent}%
+                </span>
+              </div>
+              <div className="w-full bg-muted/60 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-sky-500 h-full transition-all duration-300"
+                  style={{ width: `${batchProgress.percent}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <Card>
@@ -250,6 +482,35 @@ export default function ExtractText() {
                   />
                 </div>
 
+                {/* OCR Language Selector */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Languages className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Select value={ocrLanguage} onValueChange={setOcrLanguage}>
+                    <SelectTrigger className="h-8 text-xs w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {OCR_LANGUAGES.map((lang) => (
+                        <SelectItem key={lang.code} value={lang.code} className="text-xs">
+                          {lang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    onClick={() => handleRunBatchOcr(false)}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs px-2.5 text-sky-600 dark:text-sky-400 border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10"
+                    disabled={isBatchOcrRunning}
+                    title="Run OCR across all pages"
+                  >
+                    <Scan className="h-3.5 w-3.5 mr-1" />
+                    OCR All
+                  </Button>
+                </div>
+
                 {/* Export Buttons */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <Button
@@ -258,7 +519,11 @@ export default function ExtractText() {
                     size="sm"
                     className="h-8 text-xs px-2.5"
                   >
-                    {copiedAll ? <Check className="h-3.5 w-3.5 text-emerald-500 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                    {copiedAll ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-500 mr-1" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 mr-1" />
+                    )}
                     Copy All
                   </Button>
                   <Button
@@ -289,7 +554,9 @@ export default function ExtractText() {
                     onClick={() => setViewMode('pages')}
                     className={cn(
                       'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
-                      viewMode === 'pages' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+                      viewMode === 'pages'
+                        ? 'bg-background shadow-xs font-semibold'
+                        : 'text-muted-foreground'
                     )}
                   >
                     Page by Page ({filteredPages.length})
@@ -299,10 +566,12 @@ export default function ExtractText() {
                     onClick={() => setViewMode('all')}
                     className={cn(
                       'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
-                      viewMode === 'all' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+                      viewMode === 'all'
+                        ? 'bg-background shadow-xs font-semibold'
+                        : 'text-muted-foreground'
                     )}
                   >
-                    Combined Text
+                    Combined Document
                   </button>
                 </div>
 
@@ -316,43 +585,106 @@ export default function ExtractText() {
               {/* Text Display */}
               {viewMode === 'pages' ? (
                 <div className="space-y-3">
-                  {filteredPages.map((p, idx) => (
-                    <Card key={p.pageNumber} className="border shadow-xs">
-                      <CardHeader className="py-2.5 px-3.5 border-b bg-muted/20 flex flex-row items-center justify-between space-y-0">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs font-semibold">
-                            Page {p.pageNumber}
-                          </Badge>
-                          <span className="text-[11px] text-muted-foreground">
-                            {p.wordCount} words
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleCopyPage(p.pageNumber - 1, p.text)}
-                          className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
-                        >
-                          {copiedPageIdx === p.pageNumber - 1 ? (
-                            <>
-                              <Check className="h-3 w-3 text-emerald-500 mr-1" />
-                              Copied
-                            </>
+                  {filteredPages.map((p) => {
+                    const pageIdx = p.pageNumber - 1;
+                    return (
+                      <Card key={p.pageNumber} className="border shadow-xs">
+                        <CardHeader className="py-2.5 px-3.5 border-b bg-muted/20 flex flex-wrap items-center justify-between gap-2 space-y-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant="outline" className="text-xs font-semibold">
+                              Page {p.pageNumber}
+                            </Badge>
+
+                            {p.source === 'ocr' ? (
+                              <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] h-5 py-0">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                OCR Recognized
+                              </Badge>
+                            ) : p.source === 'digital' ? (
+                              <Badge variant="secondary" className="text-[10px] h-5 py-0">
+                                Digital Text
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-amber-500 border-amber-500/30 text-[10px] h-5 py-0"
+                              >
+                                Scanned Page
+                              </Badge>
+                            )}
+
+                            <span className="text-[11px] text-muted-foreground">
+                              {p.wordCount} words
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {/* Run OCR on this specific page */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRunOcrSinglePage(pageIdx)}
+                              disabled={p.isOcrRunning || isBatchOcrRunning}
+                              className="h-6 text-[11px] px-2 text-sky-600 dark:text-sky-400 border-sky-500/30 hover:bg-sky-500/10"
+                            >
+                              {p.isOcrRunning ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                  Scanning...
+                                </>
+                              ) : (
+                                <>
+                                  <Scan className="h-3 w-3 mr-1" />
+                                  {p.source === 'ocr' ? 'Re-run OCR' : 'Scan Page (OCR)'}
+                                </>
+                              )}
+                            </Button>
+
+                            {/* Copy Page */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleCopyPage(pageIdx, p.text)}
+                              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-foreground"
+                            >
+                              {copiedPageIdx === pageIdx ? (
+                                <>
+                                  <Check className="h-3 w-3 text-emerald-500 mr-1" />
+                                  Copied
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3 w-3 mr-1" />
+                                  Copy
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-3.5">
+                          {p.isOcrRunning ? (
+                            <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                              <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                              <p className="text-xs">
+                                Extracting text from image using Tesseract OCR...
+                              </p>
+                            </div>
                           ) : (
-                            <>
-                              <Copy className="h-3 w-3 mr-1" />
-                              Copy Page
-                            </>
+                            <pre
+                              className={cn(
+                                'text-xs font-mono leading-relaxed whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto',
+                                p.source === 'empty'
+                                  ? 'text-muted-foreground/60 italic'
+                                  : 'text-foreground/90'
+                              )}
+                            >
+                              {p.text}
+                            </pre>
                           )}
-                        </Button>
-                      </CardHeader>
-                      <CardContent className="p-3.5">
-                        <pre className="text-xs font-mono leading-relaxed whitespace-pre-wrap break-words text-foreground/90 max-h-[300px] overflow-y-auto">
-                          {p.text}
-                        </pre>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               ) : (
                 <Card className="border shadow-xs">

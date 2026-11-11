@@ -16,6 +16,8 @@ import {
   Hash,
   ShieldCheck,
   AlignLeft,
+  FileType,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -107,6 +109,30 @@ const tools = [
     icon: AlignLeft,
     color: 'bg-sky-500/10 text-sky-500',
     borderColor: 'hover:border-sky-500/30',
+  },
+  {
+    path: '/word-to-pdf',
+    label: 'Word to PDF',
+    description: 'Convert DOCX documents to formatted vector PDFs with custom styling.',
+    icon: FileType,
+    color: 'bg-blue-600/10 text-blue-600',
+    borderColor: 'hover:border-blue-600/30',
+  },
+  {
+    path: '/pdf-to-word',
+    label: 'PDF to Word',
+    description: 'Convert PDF documents to editable Microsoft Word (.docx) files.',
+    icon: FileText,
+    color: 'bg-indigo-600/10 text-indigo-600',
+    borderColor: 'hover:border-indigo-600/30',
+  },
+  {
+    path: '/pdf-to-excel',
+    label: 'PDF to Excel',
+    description: 'Extract tables, spreadsheets, and data into Excel (.xlsx) & CSV.',
+    icon: FileSpreadsheet,
+    color: 'bg-emerald-600/10 text-emerald-600',
+    borderColor: 'hover:border-emerald-600/30',
   },
   {
     path: '/metadata',

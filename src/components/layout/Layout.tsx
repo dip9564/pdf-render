@@ -18,6 +18,7 @@ import {
   Hash,
   ShieldCheck,
   AlignLeft,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ const navItems = [
   { path: '/page-numbers', label: 'Page Numbers', icon: Hash, color: 'text-emerald-500' },
   { path: '/protect-pdf', label: 'Protect & Unlock', icon: ShieldCheck, color: 'text-indigo-500' },
   { path: '/extract-text', label: 'Extract Text', icon: AlignLeft, color: 'text-sky-500' },
+  { path: '/convert', label: 'Convert Docs', icon: ArrowRightLeft, color: 'text-violet-500' },
   { path: '/metadata', label: 'Metadata', icon: FileText, color: 'text-slate-500' },
 ];
 
@@ -75,6 +77,18 @@ export function Header() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  const isItemActive = (path: string) => {
+    if (path === '/convert') {
+      return (
+        location.pathname === '/convert' ||
+        location.pathname === '/word-to-pdf' ||
+        location.pathname === '/pdf-to-word' ||
+        location.pathname === '/pdf-to-excel'
+      );
+    }
+    return location.pathname === path;
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-14 items-center justify-between px-3 sm:px-4">
@@ -94,7 +108,7 @@ export function Header() {
               to={item.path}
               className={cn(
                 'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap',
-                location.pathname === item.path
+                isItemActive(item.path)
                   ? 'bg-primary/10 text-primary font-semibold'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
@@ -141,7 +155,7 @@ export function Header() {
       {/* Mobile Horizontal Quick-Scroll Tabs (visible on mobile / tablet) */}
       <div className="xl:hidden border-t bg-muted/30 px-2 py-1.5 overflow-x-auto scrollbar-none flex items-center gap-1.5 text-xs">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = isItemActive(item.path);
           return (
             <Link
               key={item.path}
@@ -170,7 +184,7 @@ export function Header() {
                 to={item.path}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors touch-manipulation min-h-[44px]',
-                  location.pathname === item.path
+                  isItemActive(item.path)
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted active:bg-muted'
                 )}

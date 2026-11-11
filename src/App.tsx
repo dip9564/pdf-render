@@ -16,6 +16,7 @@ const MetadataEditor = lazy(() => import('@/pages/MetadataEditor'));
 const PageNumbers = lazy(() => import('@/pages/PageNumbers'));
 const ProtectPdf = lazy(() => import('@/pages/ProtectPdf'));
 const ExtractText = lazy(() => import('@/pages/ExtractText'));
+const DocumentConverter = lazy(() => import('@/pages/DocumentConverter'));
 
 function PageLoading() {
   return (
@@ -60,6 +61,10 @@ export default function App() {
           <Route path="/page-numbers" element={<PageNumbers />} />
           <Route path="/protect-pdf" element={<ProtectPdf />} />
           <Route path="/extract-text" element={<ExtractText />} />
+          <Route path="/convert" element={<DocumentConverter />} />
+          <Route path="/word-to-pdf" element={<DocumentConverter initialTab="word-to-pdf" />} />
+          <Route path="/pdf-to-word" element={<DocumentConverter initialTab="pdf-to-word" />} />
+          <Route path="/pdf-to-excel" element={<DocumentConverter initialTab="pdf-to-excel" />} />
           <Route path="/rotate-pdf" element={<Navigate to="/organize-pdf" replace />} />
           <Route path="/compress-pdf" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
