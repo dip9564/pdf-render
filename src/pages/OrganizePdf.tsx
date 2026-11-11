@@ -315,8 +315,8 @@ export default function OrganizePdf() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-6 sm:mb-8">
+    <div className="container mx-auto px-3 sm:px-4 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:py-8 max-w-6xl">
+      <div className="mb-5 sm:mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
             <LayoutGrid className="h-5 w-5" />
@@ -434,7 +434,7 @@ export default function OrganizePdf() {
 
           {/* Organizer Grid Card */}
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="p-3.5 pb-2.5 sm:p-6 sm:pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <CardTitle className="text-base sm:text-lg">Page Order & Selection</CardTitle>
@@ -466,14 +466,14 @@ export default function OrganizePdf() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3.5 pt-1 sm:p-6 sm:pt-0">
               {loading ? (
                 <div className="py-16 flex flex-col items-center justify-center gap-2 text-muted-foreground">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p className="text-sm">Generating high-fidelity page previews...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-4">
                   {pages.map((item, index) => {
                     const isSelected = selectedPageIds.has(item.id);
 
@@ -610,46 +610,68 @@ export default function OrganizePdf() {
             </CardContent>
           </Card>
 
-          {/* Mobile Floating Action Bar */}
-          <div className="sm:hidden fixed bottom-4 left-3 right-3 z-40">
-            <div className="bg-card/95 backdrop-blur-md border border-primary/35 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
-              <div className="text-xs font-semibold pl-1">
-                <span>{pages.length} pages</span>
-                {selectedPageIds.size > 0 && (
-                  <span className="text-primary ml-1">({selectedPageIds.size} sel)</span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5">
-                {selectedPageIds.size > 0 ? (
+          {/* Mobile Sticky Bottom Action Bar */}
+          <div
+            data-testid="organize-mobile-action-bar"
+            className="sm:hidden sticky z-30 pt-1"
+            style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+          >
+            <div className="bg-card/95 backdrop-blur-md border border-primary/30 rounded-2xl p-3 shadow-xl space-y-2">
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <div className="font-semibold text-foreground pl-0.5 truncate">
+                  <span>
+                    {pages.length} {pages.length === 1 ? 'page' : 'pages'}
+                  </span>
+                  {selectedPageIds.size > 0 && (
+                    <span className="text-primary ml-1.5">• {selectedPageIds.size} selected</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
                   <Button
-                    onClick={handleExtractSelected}
-                    disabled={processing}
+                    type="button"
+                    variant="outline"
                     size="sm"
-                    className="text-xs h-8 px-3 shadow-xs"
+                    onClick={() => handleInsertBlank()}
+                    disabled={processing}
+                    className="text-[11px] h-7 px-2 touch-manipulation"
                   >
-                    {processing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                    ) : (
-                      <FileCheck className="h-3.5 w-3.5 mr-1" />
-                    )}
-                    Extract ({selectedPageIds.size})
+                    <PlusCircle className="h-3 w-3 mr-1" />
+                    + Blank
                   </Button>
+                  {selectedPageIds.size > 0 && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleExtractSelected}
+                      disabled={processing}
+                      className="text-[11px] h-7 px-2.5 touch-manipulation"
+                    >
+                      <FileCheck className="h-3 w-3 mr-1" />
+                      Extract ({selectedPageIds.size})
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleSaveModified}
+                disabled={processing}
+                className="w-full h-10 text-xs font-semibold shadow-sm touch-manipulation"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                    Saving Organized PDF...
+                  </>
                 ) : (
-                  <Button
-                    onClick={handleSaveModified}
-                    disabled={processing}
-                    size="sm"
-                    className="text-xs h-8 px-3 shadow-xs"
-                  >
-                    {processing ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                    ) : (
-                      <Download className="h-3.5 w-3.5 mr-1" />
-                    )}
-                    Save PDF
-                  </Button>
+                  <>
+                    <Download className="h-4 w-4 mr-1.5" />
+                    Save &amp; Download PDF
+                  </>
                 )}
-              </div>
+              </Button>
             </div>
           </div>
         </div>

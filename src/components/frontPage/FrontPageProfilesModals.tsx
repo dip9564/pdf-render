@@ -831,8 +831,8 @@ export function SavedProfilesDialog({
 
                     {editCollege.logoMode !== 'none' && (
                       <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <Label className="text-xs">Logo Position</Label>
-                        <div className="grid grid-cols-2 sm:inline-flex w-full sm:w-auto rounded-lg border border-border/60 bg-muted/60 p-0.5 text-xs">
+                        <Label className="text-xs shrink-0">Logo Position</Label>
+                        <div className="grid grid-cols-3 sm:inline-flex w-full sm:w-auto rounded-lg border border-border/60 bg-muted/60 p-0.5 text-[11px] sm:text-xs">
                           <button
                             type="button"
                             onClick={() =>
@@ -841,7 +841,7 @@ export function SavedProfilesDialog({
                               )
                             }
                             className={cn(
-                              'px-2.5 py-1 rounded-md transition-colors text-center',
+                              'flex items-center justify-center px-2 py-1.5 sm:py-1 rounded-md transition-colors text-center leading-tight',
                               editCollege.logoPosition === 'left'
                                 ? 'bg-card text-foreground font-semibold shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground'
@@ -857,13 +857,29 @@ export function SavedProfilesDialog({
                               )
                             }
                             className={cn(
-                              'px-2.5 py-1 rounded-md transition-colors text-center',
+                              'flex items-center justify-center px-2 py-1.5 sm:py-1 rounded-md transition-colors text-center leading-tight',
                               editCollege.logoPosition === 'center'
                                 ? 'bg-card text-foreground font-semibold shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground'
                             )}
                           >
                             Top-Center
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditCollege((prev) =>
+                                prev ? { ...prev, logoPosition: 'below-name' } : prev
+                              )
+                            }
+                            className={cn(
+                              'flex items-center justify-center px-2 py-1.5 sm:py-1 rounded-md transition-colors text-center leading-tight',
+                              editCollege.logoPosition === 'below-name'
+                                ? 'bg-card text-foreground font-semibold shadow-xs'
+                                : 'text-muted-foreground hover:text-foreground'
+                            )}
+                          >
+                            Below Name
                           </button>
                         </div>
                       </div>

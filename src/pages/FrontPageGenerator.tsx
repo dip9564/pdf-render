@@ -22,6 +22,7 @@ import {
   AlertCircle,
   AlertTriangle,
   Loader2,
+  ArrowDown,
   ArrowLeft,
   Layers,
   Image as ImageIcon,
@@ -161,6 +162,7 @@ export default function FrontPageGenerator() {
 
   const formCardRef = useRef<HTMLDivElement>(null);
   const previewCardRef = useRef<HTMLDivElement>(null);
+  const exportCardRef = useRef<HTMLDivElement>(null);
   const customLogoInputRef = useRef<HTMLInputElement>(null);
   const existingPdfInputRef = useRef<HTMLInputElement>(null);
   const mergePanelRef = useRef<HTMLDivElement>(null);
@@ -750,6 +752,10 @@ export default function FrontPageGenerator() {
     formCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const scrollToExport = () => {
+    exportCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const openMergePanel = () => {
     setShowMergePanel(true);
     setTimeout(() => {
@@ -779,9 +785,9 @@ export default function FrontPageGenerator() {
   ].filter((v) => v.trim().length > 0).length;
 
   return (
-    <div className="container mx-auto px-2.5 sm:px-4 py-5 sm:py-8 max-w-7xl overflow-x-hidden">
+    <div className="container mx-auto px-2.5 sm:px-4 py-4 sm:py-8 max-w-7xl overflow-x-clip">
       {/* Page Header */}
-      <div className="mb-5 sm:mb-8">
+      <div className="mb-4 sm:mb-8">
         <div className="flex flex-wrap items-start sm:items-center gap-2.5 sm:gap-3 mb-2">
           <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
             <GraduationCap className="h-5 w-5" />
@@ -802,22 +808,19 @@ export default function FrontPageGenerator() {
         </div>
       </div>
 
-      {/* Main Split Workspace */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
-        {/* LEFT COLUMN: Configuration & Form */}
-        <div ref={formCardRef} className="lg:col-span-6 space-y-5 min-w-0">
-          {/* Card 1: College Logo & Page Frame */}
-          <Card className="overflow-hidden">
-            <CardHeader className="p-4 max-[399px]:p-3.5 sm:p-6 pb-3">
-              <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
+      {/* Main Split Workspace (Mobile: Preview first -> Forms -> Export; Desktop lg+: Forms Left, Sticky Preview+Export Right) */}
+      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-3.5 sm:gap-5 lg:gap-6 items-start">
+        {/* LEFT COLUMN (Desktop): Configuration & Form */}
+        <div className="contents lg:block lg:col-span-6 lg:space-y-5 min-w-0">
+          {/* Card 1: College Logo & Header */}
+          <Card ref={formCardRef} className="order-2 lg:order-none w-full overflow-hidden scroll-mt-16">
+            <CardHeader className="p-3.5 sm:p-6 pb-2.5 sm:pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
                 <div className="min-w-0 flex-1">
                   <CardTitle className="text-base flex items-center gap-2">
                     <ImageIcon className="h-4 w-4 text-primary shrink-0" />
                     <span className="leading-snug">1. College Logo &amp; Header</span>
                   </CardTitle>
-                  <CardDescription className="text-xs mt-1">
-                    Choose the default KGEC crest, upload your own college logo, or generate without a logo.
-                  </CardDescription>
                 </div>
                 <Button
                   type="button"
@@ -829,39 +832,39 @@ export default function FrontPageGenerator() {
                   title="Reset logo, college name, font size, position, and border margin to defaults"
                 >
                   <RotateCcw className="h-3 w-3 shrink-0" />
-                  <span>Reset to Default</span>
+                  <span>Reset</span>
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-4 max-[399px]:p-3.5 sm:p-6 pt-0 space-y-4">
-              {/* 3 Logo Mode Options */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <CardContent className="p-3.5 sm:p-6 pt-0 space-y-3 sm:space-y-4">
+              {/* 3 Logo Mode Options (Always 3 equal-width cards on one row) */}
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 items-stretch">
                 {/* KGEC Logo Default */}
                 <button
                   type="button"
                   onClick={() => handleLogoModeChange('kgec')}
                   className={cn(
-                    'flex md:flex-col items-center md:justify-center gap-3 md:gap-2 p-3 rounded-xl border text-left md:text-center transition-all touch-manipulation w-full min-w-0',
+                    'flex flex-col items-center justify-start md:justify-center gap-1.5 md:gap-2 px-1.5 py-2 md:p-3 rounded-xl border text-center transition-all touch-manipulation w-full min-w-0 h-full',
                     logoMode === 'kgec'
                       ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
                       : 'border-border bg-card hover:bg-muted/50'
                   )}
                 >
-                  <div className="h-10 w-10 rounded-lg bg-white border p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-white border p-1 flex items-center justify-center shrink-0 overflow-hidden">
                     <img
                       src={kgecLogoUrl}
                       alt="KGEC Official Crest"
                       className="h-full w-full object-contain"
                     />
                   </div>
-                  <div className="min-w-0 flex-1 md:flex-none">
-                    <p className="text-xs font-semibold flex flex-wrap items-center md:justify-center gap-1.5">
+                  <div className="min-w-0 w-full md:w-auto flex flex-col items-center">
+                    <p className="text-[11px] sm:text-xs font-semibold leading-tight flex flex-col md:flex-row md:flex-wrap items-center justify-center gap-0.5 md:gap-1.5">
                       <span>KGEC Logo</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-primary/15 text-primary font-medium">
+                      <span className="text-[9px] md:text-[10px] px-1.5 py-0.2 rounded bg-primary/15 text-primary font-medium leading-tight">
                         Default
                       </span>
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                    <p className="hidden md:block text-[11px] text-muted-foreground truncate mt-0.5">
                       Offline official crest
                     </p>
                   </div>
@@ -872,13 +875,13 @@ export default function FrontPageGenerator() {
                   type="button"
                   onClick={() => handleLogoModeChange('custom')}
                   className={cn(
-                    'flex md:flex-col items-center md:justify-center gap-3 md:gap-2 p-3 rounded-xl border text-left md:text-center transition-all touch-manipulation w-full min-w-0',
+                    'flex flex-col items-center justify-start md:justify-center gap-1.5 md:gap-2 px-1.5 py-2 md:p-3 rounded-xl border text-center transition-all touch-manipulation w-full min-w-0 h-full',
                     logoMode === 'custom'
                       ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
                       : 'border-border bg-card hover:bg-muted/50'
                   )}
                 >
-                  <div className="h-10 w-10 rounded-lg bg-muted border flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-muted border flex items-center justify-center shrink-0 overflow-hidden">
                     {customLogoPreviewUrl ? (
                       <img
                         src={customLogoPreviewUrl}
@@ -889,9 +892,9 @@ export default function FrontPageGenerator() {
                       <Upload className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
-                  <div className="min-w-0 flex-1 md:flex-none">
-                    <p className="text-xs font-semibold">Custom Logo</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                  <div className="min-w-0 w-full md:w-auto flex flex-col items-center">
+                    <p className="text-[11px] sm:text-xs font-semibold leading-tight">Custom Logo</p>
+                    <p className="hidden md:block text-[11px] text-muted-foreground truncate mt-0.5">
                       PNG, JPG, JPEG, SVG
                     </p>
                   </div>
@@ -902,18 +905,18 @@ export default function FrontPageGenerator() {
                   type="button"
                   onClick={() => handleLogoModeChange('none')}
                   className={cn(
-                    'flex md:flex-col items-center md:justify-center gap-3 md:gap-2 p-3 rounded-xl border text-left md:text-center transition-all touch-manipulation w-full min-w-0',
+                    'flex flex-col items-center justify-start md:justify-center gap-1.5 md:gap-2 px-1.5 py-2 md:p-3 rounded-xl border text-center transition-all touch-manipulation w-full min-w-0 h-full',
                     logoMode === 'none'
                       ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
                       : 'border-border bg-card hover:bg-muted/50'
                   )}
                 >
-                  <div className="h-10 w-10 rounded-lg bg-muted border flex items-center justify-center shrink-0">
+                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg bg-muted border flex items-center justify-center shrink-0">
                     <Ban className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <div className="min-w-0 flex-1 md:flex-none">
-                    <p className="text-xs font-semibold">Without Logo</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
+                  <div className="min-w-0 w-full md:w-auto flex flex-col items-center">
+                    <p className="text-[11px] sm:text-xs font-semibold leading-tight">Without Logo</p>
+                    <p className="hidden md:block text-[11px] text-muted-foreground truncate mt-0.5">
                       Text-only header
                     </p>
                   </div>
@@ -1036,47 +1039,48 @@ export default function FrontPageGenerator() {
                 </div>
               )}
 
-              {/* Editable College Name */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Label htmlFor="fp-college-name" className="text-xs font-semibold">
-                    College / Institution Name
-                  </Label>
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    {details.collegeName !== DEFAULT_COLLEGE_NAME && (
-                      <button
-                        type="button"
-                        onClick={() => updateDetailField('collegeName', DEFAULT_COLLEGE_NAME)}
-                        className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
-                      >
-                        <RotateCcw className="h-3 w-3 shrink-0" />
-                        Reset KGEC
-                      </button>
-                    )}
-                    {details.collegeName.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => updateDetailField('collegeName', '')}
-                        className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-destructive"
-                      >
-                        <X className="h-3 w-3 shrink-0" />
-                        Clear
-                      </button>
-                    )}
+              {/* College Header & Frame Settings (Mobile: 1.Logo Size 2.Margin 3.Position 4.College Name 5.Font Size; Desktop lg+: College Name -> Font Size -> Logo Size / Margin -> Position) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-3 border-t lg:pt-1 lg:border-t-0">
+                {/* 4 (mobile) / 1 (desktop): Editable College Name */}
+                <div className="order-4 lg:order-1 col-span-full space-y-1 sm:space-y-1.5 pt-3 border-t lg:pt-0 lg:border-t-0">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label htmlFor="fp-college-name" className="text-xs font-semibold">
+                      College / Institution Name
+                    </Label>
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      {details.collegeName !== DEFAULT_COLLEGE_NAME && (
+                        <button
+                          type="button"
+                          onClick={() => updateDetailField('collegeName', DEFAULT_COLLEGE_NAME)}
+                          className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline font-medium"
+                        >
+                          <RotateCcw className="h-3 w-3 shrink-0" />
+                          Reset KGEC
+                        </button>
+                      )}
+                      {details.collegeName.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => updateDetailField('collegeName', '')}
+                          className="inline-flex items-center gap-0.5 text-[11px] text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-3 w-3 shrink-0" />
+                          Clear
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  <Input
+                    id="fp-college-name"
+                    value={details.collegeName}
+                    onChange={(e) => updateDetailField('collegeName', e.target.value)}
+                    placeholder="Enter college name (optional)"
+                    className="text-sm"
+                  />
                 </div>
-                <Input
-                  id="fp-college-name"
-                  value={details.collegeName}
-                  onChange={(e) => updateDetailField('collegeName', e.target.value)}
-                  placeholder="Enter college name (optional)"
-                  className="text-sm"
-                />
-              </div>
 
-              {/* Typography, Logo & Border Margin Tuning */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
-                <div className="space-y-2 sm:col-span-2">
+                {/* 5 (mobile) / 2 (desktop): College Name Font Size */}
+                <div className="order-5 lg:order-2 col-span-full space-y-1.5 sm:space-y-2 lg:pt-2.5 lg:border-t">
                   <div className="flex items-center justify-between text-xs">
                     <Label htmlFor="fp-college-font-size" className="text-xs font-medium">
                       College Name Font Size
@@ -1098,8 +1102,9 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
+                {/* 1 (mobile) / 3 (desktop): Logo Size */}
                 {logoMode !== 'none' && (
-                  <div className="space-y-2">
+                  <div className="order-1 lg:order-3 space-y-1.5 sm:space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <Label className="text-xs font-medium">Logo Size</Label>
                       <span className="text-[11px] font-semibold text-muted-foreground">
@@ -1119,7 +1124,8 @@ export default function FrontPageGenerator() {
                   </div>
                 )}
 
-                <div className="space-y-2">
+                {/* 2 (mobile) / 4 (desktop): Page Border Margin */}
+                <div className="order-2 lg:order-4 space-y-1.5 sm:space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <Label className="text-xs font-medium">Page Border Margin</Label>
                     <span className="text-[11px] font-semibold text-muted-foreground">
@@ -1138,10 +1144,11 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
+                {/* 3 (mobile) / 5 (desktop): Logo Position */}
                 {logoMode !== 'none' && (
-                  <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5 min-w-0">
-                    <Label className="text-xs font-medium">Logo Position</Label>
-                    <div className="grid grid-cols-2 sm:inline-flex w-full sm:w-auto rounded-lg border border-border/60 bg-muted/60 p-0.5 text-xs">
+                  <div className="order-3 lg:order-5 col-span-full flex flex-col sm:flex-row lg:flex-col xl:flex-row sm:items-center lg:items-stretch xl:items-center justify-between gap-1.5 sm:gap-2 pt-0.5 min-w-0">
+                    <Label className="text-xs font-medium shrink-0">Logo Position</Label>
+                    <div className="grid grid-cols-3 sm:inline-flex lg:grid xl:inline-flex w-full sm:w-auto lg:w-full xl:w-auto rounded-lg border border-border/60 bg-muted/60 p-0.5 text-[11px] sm:text-xs">
                       <button
                         type="button"
                         onClick={() => {
@@ -1149,7 +1156,7 @@ export default function FrontPageGenerator() {
                           markFormChanged();
                         }}
                         className={cn(
-                          'px-2.5 py-1.5 sm:py-1 rounded-md transition-colors text-center whitespace-normal leading-tight',
+                          'flex items-center justify-center px-1.5 sm:px-2.5 py-1.5 sm:py-1 rounded-md transition-colors text-center whitespace-normal leading-tight',
                           logoPosition === 'left'
                             ? 'bg-card text-foreground font-semibold shadow-xs'
                             : 'text-muted-foreground hover:text-foreground'
@@ -1164,13 +1171,28 @@ export default function FrontPageGenerator() {
                           markFormChanged();
                         }}
                         className={cn(
-                          'px-2.5 py-1.5 sm:py-1 rounded-md transition-colors text-center whitespace-normal leading-tight',
+                          'flex items-center justify-center px-1.5 sm:px-2.5 py-1.5 sm:py-1 rounded-md transition-colors text-center whitespace-normal leading-tight',
                           logoPosition === 'center'
                             ? 'bg-card text-foreground font-semibold shadow-xs'
                             : 'text-muted-foreground hover:text-foreground'
                         )}
                       >
                         Top-Center
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLogoPosition('below-name');
+                          markFormChanged();
+                        }}
+                        className={cn(
+                          'flex items-center justify-center px-1.5 sm:px-2.5 py-1.5 sm:py-1 rounded-md transition-colors text-center whitespace-normal leading-tight',
+                          logoPosition === 'below-name'
+                            ? 'bg-card text-foreground font-semibold shadow-xs'
+                            : 'text-muted-foreground hover:text-foreground'
+                        )}
+                      >
+                        Below College Name
                       </button>
                     </div>
                   </div>
@@ -1180,8 +1202,8 @@ export default function FrontPageGenerator() {
           </Card>
 
           {/* Card 2: Main Heading */}
-          <Card className="overflow-hidden">
-            <CardHeader className="p-4 max-[399px]:p-3.5 sm:p-6 pb-3">
+          <Card className="order-3 lg:order-none w-full overflow-hidden">
+            <CardHeader className="p-3.5 sm:p-6 pb-2.5 sm:pb-3">
               <div className="flex flex-wrap items-center justify-between gap-2.5 min-w-0">
                 <div className="min-w-0">
                   <CardTitle className="text-base">2. Main Heading</CardTitle>
@@ -1190,26 +1212,6 @@ export default function FrontPageGenerator() {
                   </CardDescription>
                 </div>
                 <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLoadSample}
-                    className="h-auto min-h-7 py-1 text-xs px-2 sm:px-2.5 gap-1 whitespace-normal text-center"
-                  >
-                    <Sparkles className="h-3 w-3 text-teal shrink-0" />
-                    <span>Fill Sample</span>
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={openSaveProfileModal}
-                    className="h-auto min-h-7 py-1 text-xs px-2 sm:px-2.5 gap-1 whitespace-normal text-center"
-                  >
-                    <BookmarkPlus className="h-3 w-3 text-primary shrink-0" />
-                    <span>Save Details</span>
-                  </Button>
                   <Button
                     type="button"
                     variant="outline"
@@ -1227,18 +1229,38 @@ export default function FrontPageGenerator() {
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
+                    size="sm"
+                    onClick={openSaveProfileModal}
+                    className="h-auto min-h-7 py-1 text-xs px-2 sm:px-2.5 gap-1 whitespace-normal text-center"
+                  >
+                    <BookmarkPlus className="h-3 w-3 text-primary shrink-0" />
+                    <span>Save Details</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLoadSample}
+                    className="h-auto min-h-7 py-1 text-xs px-2 sm:px-2.5 gap-1 whitespace-normal text-center"
+                  >
+                    <Sparkles className="h-3 w-3 text-teal shrink-0" />
+                    <span>Fill Sample</span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
                     size="sm"
                     onClick={handleClearDetails}
-                    className="h-auto min-h-7 py-1 text-xs px-2 text-muted-foreground hover:text-destructive whitespace-normal text-center"
+                    className="h-auto min-h-7 py-1 text-xs px-2 sm:px-2.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 whitespace-normal text-center"
                   >
                     Clear Fields
                   </Button>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-4 max-[399px]:p-3.5 sm:p-6 pt-0 space-y-3.5">
-              <div className="space-y-1.5">
+            <CardContent className="p-3.5 sm:p-6 pt-0 space-y-2.5 sm:space-y-3.5">
+              <div className="space-y-1 sm:space-y-1.5">
                 <Label htmlFor="fp-main-title" className="text-xs font-semibold">
                   Main Title
                 </Label>
@@ -1250,7 +1272,7 @@ export default function FrontPageGenerator() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1 sm:space-y-1.5">
                 <Label htmlFor="fp-assignment-title" className="text-xs font-semibold">
                   Assignment Title
                 </Label>
@@ -1274,8 +1296,8 @@ export default function FrontPageGenerator() {
           </Card>
 
           {/* Card 3: Student Details */}
-          <Card className="overflow-hidden">
-            <CardHeader className="p-4 max-[399px]:p-3.5 sm:p-6 pb-3">
+          <Card className="order-4 lg:order-none w-full overflow-hidden">
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-3">
               <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
                 <div className="min-w-0 flex-1">
                   <CardTitle className="text-base">3. Student Details</CardTitle>
@@ -1288,9 +1310,9 @@ export default function FrontPageGenerator() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="p-4 max-[399px]:p-3.5 sm:p-6 pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                <div className="space-y-1.5">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-name" className="text-xs font-semibold">
                     Name
                   </Label>
@@ -1302,7 +1324,7 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-roll" className="text-xs font-semibold">
                     Roll No.
                   </Label>
@@ -1314,7 +1336,7 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-reg" className="text-xs font-semibold">
                     Registration No.
                   </Label>
@@ -1326,7 +1348,7 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-dept" className="text-xs font-semibold">
                     Department
                   </Label>
@@ -1338,7 +1360,7 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-subject" className="text-xs font-semibold">
                     Subject
                   </Label>
@@ -1350,7 +1372,7 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-subject-code" className="text-xs font-semibold">
                     Subject Code
                   </Label>
@@ -1362,7 +1384,7 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-semester" className="text-xs font-semibold">
                     Semester
                   </Label>
@@ -1374,7 +1396,7 @@ export default function FrontPageGenerator() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1 sm:gap-1.5">
                   <Label htmlFor="fp-year" className="text-xs font-semibold">
                     Year
                   </Label>
@@ -1388,7 +1410,7 @@ export default function FrontPageGenerator() {
               </div>
 
               {!hasVisibleContent && (
-                <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-600 dark:text-amber-400">
+                <div className="mt-3 sm:mt-4 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-600 dark:text-amber-400">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>
                     All text fields and logo are currently empty. You can still generate an empty bordered A4 page, or fill in your details above.
@@ -1397,7 +1419,7 @@ export default function FrontPageGenerator() {
               )}
 
               {/* Primary Generate Preview Button */}
-              <div className="mt-5 pt-4 border-t">
+              <div className="mt-3.5 pt-3 sm:mt-5 sm:pt-4 border-t">
                 <Button
                   type="button"
                   size="lg"
@@ -1427,10 +1449,10 @@ export default function FrontPageGenerator() {
           </Card>
         </div>
 
-        {/* RIGHT COLUMN: Sticky A4 Preview & Output Actions */}
-        <div ref={previewCardRef} className="lg:col-span-6 space-y-5 lg:sticky lg:top-20 min-w-0">
-          <Card className="overflow-hidden">
-            <CardHeader className="p-4 max-[399px]:p-3.5 sm:p-6 pb-3 border-b bg-muted/20">
+        {/* RIGHT COLUMN (Desktop): Sticky A4 Preview & Output Actions */}
+        <div className="contents lg:block lg:col-span-6 lg:space-y-5 lg:sticky lg:top-20 min-w-0">
+          <Card ref={previewCardRef} className="order-1 lg:order-none w-full overflow-hidden scroll-mt-16">
+            <CardHeader className="p-3 sm:p-6 pb-2.5 sm:pb-3 border-b bg-muted/20">
               <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 min-w-0">
                   <Eye className="h-4 w-4 text-primary shrink-0" />
@@ -1457,7 +1479,7 @@ export default function FrontPageGenerator() {
                       >
                         <ZoomOut className="h-3.5 w-3.5" />
                       </Button>
-                      <span className="text-[11px] font-medium px-1.5 min-w-[42px] text-center">
+                      <span className="text-[11px] font-medium px-1 min-w-[34px] text-center">
                         {zoomMode === 'fit' ? 'Fit' : `${Math.round(zoomMode * 100)}%`}
                       </span>
                       <Button
@@ -1495,13 +1517,27 @@ export default function FrontPageGenerator() {
                     <ArrowLeft className="h-3 w-3 mr-1" />
                     Edit
                   </Button>
+
+                  {hasGeneratedPreview && previewPdfBytes && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-[11px] font-semibold gap-1 border-primary/40 bg-primary/10 text-primary dark:text-indigo-300 hover:bg-primary/15"
+                      onClick={scrollToExport}
+                      title="Scroll to Export & Output Options"
+                    >
+                      <span>Export</span>
+                      <ArrowDown className="h-3 w-3 shrink-0" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
 
-            <CardContent className="p-3 sm:p-5 bg-surface-secondary dark:bg-background/70">
+            <CardContent className="p-2 sm:p-5 bg-surface-secondary dark:bg-background/70">
               {previewError && (
-                <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div className="mb-3 sm:mb-4 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 sm:p-3 text-xs text-destructive">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <p className="font-semibold">Preview Could Not Be Generated</p>
@@ -1511,10 +1547,10 @@ export default function FrontPageGenerator() {
               )}
 
               {!hasGeneratedPreview || !previewImageUrl ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/90 p-5 sm:p-12 text-center min-h-[280px] sm:min-h-[380px]">
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/90 p-4 sm:p-12 text-center min-h-[168px] sm:min-h-[380px]">
                   {generatingPreview ? (
                     <>
-                      <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+                      <Loader2 className="h-7 w-7 sm:h-8 sm:w-8 animate-spin text-primary mb-2.5 sm:mb-3" />
                       <p className="text-sm font-semibold">Rendering A4 Front Page PDF...</p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Building vector layout and live preview
@@ -1522,11 +1558,11 @@ export default function FrontPageGenerator() {
                     </>
                   ) : (
                     <>
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
-                        <FileText className="h-7 w-7" />
+                      <div className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-2.5 sm:mb-4">
+                        <FileText className="h-5 w-5 sm:h-7 sm:w-7" />
                       </div>
                       <p className="text-sm sm:text-base font-semibold">No Preview Generated Yet</p>
-                      <p className="text-xs text-muted-foreground max-w-sm mt-1.5 mb-5">
+                      <p className="text-xs text-muted-foreground max-w-sm mt-1 sm:mt-1.5 mb-3 sm:mb-5">
                         Configure your college logo, heading, and student details, then click{' '}
                         <strong className="text-foreground">Generate Preview</strong> to view the exact A4 PDF page.
                       </p>
@@ -1534,7 +1570,7 @@ export default function FrontPageGenerator() {
                         type="button"
                         onClick={handleGenerateClick}
                         disabled={generatingPreview}
-                        className="w-full sm:w-auto max-w-full box-border h-auto min-h-10 px-4 py-2 whitespace-normal text-center gap-2"
+                        className="w-full sm:w-auto max-w-full box-border h-auto min-h-9 sm:min-h-10 px-4 py-2 whitespace-normal text-center gap-2"
                       >
                         <Eye className="h-4 w-4 shrink-0" />
                         <span>Generate Preview</span>
@@ -1543,9 +1579,9 @@ export default function FrontPageGenerator() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {/* Scrollable Preview Sheet Viewport */}
-                  <div className="max-h-[600px] max-w-full overflow-auto rounded-lg p-1.5 sm:p-2">
+                  <div className="max-h-[540px] sm:max-h-[600px] max-w-full overflow-auto rounded-lg p-0.5 sm:p-2">
                     <div
                       className="relative mx-auto bg-white shadow-xl border border-slate-300 dark:border-slate-700 transition-all duration-150 shrink-0"
                       style={{
@@ -1566,7 +1602,7 @@ export default function FrontPageGenerator() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-muted-foreground">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 px-0.5 sm:px-1 text-[10px] sm:text-[11px] text-muted-foreground">
                     <span>Exact 1:1 A4 Portrait PDF preview (595.28 × 841.89 pt)</span>
                     <button
                       type="button"
@@ -1583,14 +1619,14 @@ export default function FrontPageGenerator() {
 
           {/* Output Options Card (shown prominently after preview, and also available directly) */}
           {hasGeneratedPreview && previewPdfBytes && (
-            <Card className="overflow-hidden">
-              <CardHeader className="p-4 max-[399px]:p-3.5 sm:p-6 pb-3">
+            <Card ref={exportCardRef} className="order-5 lg:order-none w-full overflow-hidden scroll-mt-16">
+              <CardHeader className="p-3.5 sm:p-6 pb-2.5 sm:pb-3">
                 <CardTitle className="text-base">4. Export &amp; Output Options</CardTitle>
                 <CardDescription className="text-xs">
                   Download the standalone cover sheet or prepend it as Page 1 of an existing PDF.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 max-[399px]:p-3.5 sm:p-6 pt-0 space-y-4">
+              <CardContent className="p-3.5 sm:p-6 pt-0 space-y-3 sm:space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
                   {/* Option A: Download Front Page */}
                   <Button

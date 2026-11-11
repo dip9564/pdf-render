@@ -362,7 +362,7 @@ export function Header() {
 
 export function Footer() {
   return (
-    <footer className="relative z-10 border-t border-border/80 bg-header/80 backdrop-blur-sm py-6 mt-auto">
+    <footer className="relative z-[5] border-t border-border/80 bg-header/80 backdrop-blur-sm py-6 mt-auto">
       <div className="container mx-auto max-w-7xl px-4 sm:px-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left text-xs text-muted-foreground">
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
           <BrandLogo variant="icon" size="xs" alt="PDF Render icon" />
@@ -394,6 +394,14 @@ export function ThemeToaster() {
     }
   });
 
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    try {
+      return typeof window !== 'undefined' ? window.innerWidth < 640 : false;
+    } catch {
+      return false;
+    }
+  });
+
   useEffect(() => {
     const root = document.documentElement;
     const sync = () => {
@@ -402,12 +410,24 @@ export function ThemeToaster() {
     sync();
     const observer = new MutationObserver(sync);
     observer.observe(root, { attributes: true, attributeFilter: ['class'] });
-    return () => observer.disconnect();
+
+    const mql = window.matchMedia?.('(max-width: 639px)');
+    const syncViewport = () => setIsMobile(mql ? mql.matches : window.innerWidth < 640);
+    syncViewport();
+    mql?.addEventListener?.('change', syncViewport);
+
+    return () => {
+      observer.disconnect();
+      mql?.removeEventListener?.('change', syncViewport);
+    };
   }, []);
 
   return (
     <Toaster
-      position="bottom-right"
+      position={isMobile ? 'top-center' : 'bottom-right'}
+      offset={isMobile ? { top: 64 } : undefined}
+      mobileOffset={isMobile ? { top: 64 } : undefined}
+      visibleToasts={isMobile ? 1 : 3}
       richColors
       closeButton
       theme={theme}
@@ -425,7 +445,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
-      <div className="relative flex-1 flex flex-col w-full max-w-full overflow-x-hidden">
+      <div className="relative flex-1 flex flex-col w-full max-w-full overflow-x-clip">
         <WaveBackground variant={isHomePage ? 'hero' : 'subtle'} />
         <main className="relative z-10 flex-1 w-full max-w-full">{children}</main>
       </div>

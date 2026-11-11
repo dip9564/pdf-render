@@ -168,6 +168,180 @@ function getAnnotationBounds(
   return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 }
 
+function computeHighlightRect(
+  start: Point,
+  end: Point,
+  strokeWidth: number
+): { x: number; y: number; width: number; height: number } | null {
+  const dx = Math.abs(end.x - start.x);
+  const dy = Math.abs(end.y - start.y);
+  if (dx < 4 && dy < 4) return null;
+
+  const minBandHeight = Math.max(16, strokeWidth * 4);
+  if (dx >= 6 && dy < minBandHeight * 0.5) {
+    const centerY = (start.y + end.y) / 2;
+    return {
+      x: Math.min(start.x, end.x),
+      y: centerY - minBandHeight / 2,
+      width: dx,
+      height: minBandHeight,
+    };
+  }
+
+  return {
+    x: Math.min(start.x, end.x),
+    y: Math.min(start.y, end.y),
+    width: Math.max(4, dx),
+    height: Math.max(4, dy),
+  };
+}
+
+function drawAnnotationOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  ann: Annotation,
+  imageCache?: Record<string, HTMLImageElement>,
+  onAsyncImageLoad?: () => void
+) {
+  ctx.save();
+  ctx.strokeStyle = ann.color;
+  ctx.fillStyle = ann.color;
+  ctx.lineWidth = ann.strokeWidth;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (ann.opacity !== undefined) {
+    ctx.globalAlpha = ann.opacity;
+  }
+
+  switch (ann.type) {
+    case 'pen':
+    case 'signature':
+      if (ann.points && ann.points.length === 1) {
+        ctx.beginPath();
+        ctx.arc(ann.points[0].x, ann.points[0].y, Math.max(1, ann.strokeWidth / 2), 0, Math.PI * 2);
+        ctx.fill();
+      } else if (ann.points && ann.points.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(ann.points[0].x, ann.points[0].y);
+        for (let i = 1; i < ann.points.length; i++) {
+          ctx.lineTo(ann.points[i].x, ann.points[i].y);
+        }
+        ctx.stroke();
+      }
+      break;
+
+    case 'highlight':
+      if (
+        ann.x !== undefined &&
+        ann.y !== undefined &&
+        ann.width !== undefined &&
+        ann.height !== undefined &&
+        ann.width > 0 &&
+        ann.height > 0
+      ) {
+        ctx.globalAlpha = ann.opacity ?? 0.35;
+        ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
+      }
+      break;
+
+    case 'rect':
+      if (
+        ann.x !== undefined &&
+        ann.y !== undefined &&
+        ann.width !== undefined &&
+        ann.height !== undefined &&
+        ann.width > 0 &&
+        ann.height > 0
+      ) {
+        ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
+      }
+      break;
+
+    case 'circle':
+      if (
+        ann.x !== undefined &&
+        ann.y !== undefined &&
+        ann.width !== undefined &&
+        ann.height !== undefined &&
+        ann.width > 0 &&
+        ann.height > 0
+      ) {
+        ctx.beginPath();
+        const radiusX = Math.abs(ann.width) / 2;
+        const radiusY = Math.abs(ann.height) / 2;
+        const centerX = ann.x + ann.width / 2;
+        const centerY = ann.y + ann.height / 2;
+        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+      }
+      break;
+
+    case 'arrow':
+      if (
+        ann.x !== undefined &&
+        ann.y !== undefined &&
+        ann.endX !== undefined &&
+        ann.endY !== undefined
+      ) {
+        const dx = ann.endX - ann.x;
+        const dy = ann.endY - ann.y;
+        const len = Math.hypot(dx, dy);
+        if (len > 0) {
+          ctx.beginPath();
+          ctx.moveTo(ann.x, ann.y);
+          ctx.lineTo(ann.endX, ann.endY);
+          ctx.stroke();
+
+          const angle = Math.atan2(dy, dx);
+          const headLength = Math.min(len * 0.45, Math.max(12, Math.min(26, 8 + (ann.strokeWidth || 3) * 2)));
+          ctx.beginPath();
+          ctx.moveTo(ann.endX, ann.endY);
+          ctx.lineTo(
+            ann.endX - headLength * Math.cos(angle - Math.PI / 6),
+            ann.endY - headLength * Math.sin(angle - Math.PI / 6)
+          );
+          ctx.moveTo(ann.endX, ann.endY);
+          ctx.lineTo(
+            ann.endX - headLength * Math.cos(angle + Math.PI / 6),
+            ann.endY - headLength * Math.sin(angle + Math.PI / 6)
+          );
+          ctx.stroke();
+        }
+      }
+      break;
+
+    case 'text':
+      if (ann.x !== undefined && ann.y !== undefined && ann.text) {
+        let fontStyle = '';
+        if (ann.isItalic) fontStyle += 'italic ';
+        if (ann.isBold) fontStyle += 'bold ';
+        ctx.font = `${fontStyle}${ann.fontSize || 20}px sans-serif`;
+        ctx.fillText(ann.text, ann.x, ann.y);
+      }
+      break;
+
+    case 'signature_stamp':
+      if (ann.imageData && ann.x !== undefined && ann.y !== undefined && imageCache) {
+        const w = ann.width || 160;
+        const h = ann.height || 80;
+        let img = imageCache[ann.imageData];
+        if (!img) {
+          img = new Image();
+          img.src = ann.imageData;
+          imageCache[ann.imageData] = img;
+          if (onAsyncImageLoad) {
+            img.onload = onAsyncImageLoad;
+          }
+        }
+        if (img.complete && img.naturalWidth > 0) {
+          ctx.drawImage(img, ann.x, ann.y, w, h);
+        }
+      }
+      break;
+  }
+
+  ctx.restore();
+}
+
 export default function AnnotatePdf() {
   const [file, setFile] = useState<File | null>(null);
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
@@ -191,16 +365,22 @@ export default function AnnotatePdf() {
   const [history, setHistory] = useState<Annotation[][]>([]);
   const [historyStep, setHistoryStep] = useState<number>(-1);
 
-  // Drawing tracking
-  const [isDrawing, setIsDrawing] = useState<boolean>(false);
-  const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
-  const [startPos, setStartPos] = useState<Point | null>(null);
-
   // Selection & moving tracking
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isDraggingSelected, setIsDraggingSelected] = useState<boolean>(false);
-  const [dragStartPoint, setDragStartPoint] = useState<Point | null>(null);
-  const [dragAnnotationStart, setDragAnnotationStart] = useState<Annotation | null>(null);
+
+  // Synchronous interaction refs prevent stale React closures during fast touch/stylus sequences
+  const activePointerIdRef = useRef<number | null>(null);
+  const isDrawingRef = useRef<boolean>(false);
+  const startPosRef = useRef<Point | null>(null);
+  const currentPosRef = useRef<Point | null>(null);
+  const currentPointsRef = useRef<Point[]>([]);
+  const isDraggingSelectedRef = useRef<boolean>(false);
+  const dragStartPointRef = useRef<Point | null>(null);
+  const dragAnnotationStartRef = useRef<Annotation | null>(null);
+  const historyRef = useRef<Annotation[][]>([]);
+  const historyStepRef = useRef<number>(-1);
+  const redrawCanvasRef = useRef<() => void>(() => {});
 
   // Signature Vault State
   const [isVaultOpen, setIsVaultOpen] = useState<boolean>(false);
@@ -293,9 +473,13 @@ export default function AnnotatePdf() {
         // Render full pages for canvas backgrounds
         const images = await renderAllPages(new Uint8Array(buffer.slice(0)), 1.5);
         setPageImages(images);
+        annotationsRef.current = [];
+        historyRef.current = [[]];
+        historyStepRef.current = 0;
         setAnnotations([]);
         setHistory([[]]);
         setHistoryStep(0);
+        setSelectedId(null);
 
         toast.success(`Loaded "${selectedFile.name}" with ${count} pages`);
       } catch (err) {
@@ -310,45 +494,59 @@ export default function AnnotatePdf() {
     [getPageCount, renderAllPages]
   );
 
-  // Push annotation and manage undo/redo history
-  const addAnnotation = (newAnn: Annotation) => {
-    const nextAnnList = [...annotations, newAnn];
-    const nextHistory = history.slice(0, historyStep + 1);
+  // Push annotation and manage undo/redo history synchronously via refs
+  const addAnnotation = useCallback((newAnn: Annotation) => {
+    const nextAnnList = [...annotationsRef.current, newAnn];
+    const nextHistory = historyRef.current.slice(0, historyStepRef.current + 1);
     nextHistory.push(nextAnnList);
+
+    annotationsRef.current = nextAnnList;
+    historyRef.current = nextHistory;
+    historyStepRef.current = nextHistory.length - 1;
 
     setHistory(nextHistory);
     setHistoryStep(nextHistory.length - 1);
     setAnnotations(nextAnnList);
-  };
+  }, []);
 
   const handleUndo = () => {
-    if (historyStep > 0) {
-      const nextStep = historyStep - 1;
+    if (historyStepRef.current > 0) {
+      const nextStep = historyStepRef.current - 1;
+      const snapshot = historyRef.current[nextStep];
+      historyStepRef.current = nextStep;
+      annotationsRef.current = snapshot;
       setHistoryStep(nextStep);
-      setAnnotations(history[nextStep]);
+      setAnnotations(snapshot);
     }
   };
 
   const handleRedo = () => {
-    if (historyStep < history.length - 1) {
-      const nextStep = historyStep + 1;
+    if (historyStepRef.current < historyRef.current.length - 1) {
+      const nextStep = historyStepRef.current + 1;
+      const snapshot = historyRef.current[nextStep];
+      historyStepRef.current = nextStep;
+      annotationsRef.current = snapshot;
       setHistoryStep(nextStep);
-      setAnnotations(history[nextStep]);
+      setAnnotations(snapshot);
     }
   };
 
   const handleClearCurrentPage = () => {
-    const remaining = annotations.filter((a) => a.pageIndex !== currentPage - 1);
-    const nextHistory = history.slice(0, historyStep + 1);
+    const remaining = annotationsRef.current.filter((a) => a.pageIndex !== currentPage - 1);
+    const nextHistory = historyRef.current.slice(0, historyStepRef.current + 1);
     nextHistory.push(remaining);
 
+    annotationsRef.current = remaining;
+    historyRef.current = nextHistory;
+    historyStepRef.current = nextHistory.length - 1;
     setHistory(nextHistory);
     setHistoryStep(nextHistory.length - 1);
     setAnnotations(remaining);
+    setSelectedId(null);
     toast.success('Annotations on current page cleared');
   };
 
-  // Canvas drawing & redraw
+  // Canvas drawing & redraw (committed annotations + active live drag preview)
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -358,114 +556,79 @@ export default function AnnotatePdf() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const pageIdx = currentPage - 1;
-    const pageAnns = annotations.filter((a) => a.pageIndex === pageIdx);
+    const pageAnns = annotationsRef.current.filter((a) => a.pageIndex === pageIdx);
 
     for (const ann of pageAnns) {
-      ctx.save();
-      ctx.strokeStyle = ann.color;
-      ctx.fillStyle = ann.color;
-      ctx.lineWidth = ann.strokeWidth;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      if (ann.opacity) ctx.globalAlpha = ann.opacity;
+      drawAnnotationOnCanvas(ctx, ann, imageCacheRef.current, () => redrawCanvasRef.current());
+    }
 
-      switch (ann.type) {
-        case 'pen':
-        case 'signature':
-          if (ann.points && ann.points.length > 1) {
-            ctx.beginPath();
-            ctx.moveTo(ann.points[0].x, ann.points[0].y);
-            for (let i = 1; i < ann.points.length; i++) {
-              ctx.lineTo(ann.points[i].x, ann.points[i].y);
-            }
-            ctx.stroke();
-          }
-          break;
+    // Draw live shape/stroke preview while actively drawing with pointer
+    if (isDrawingRef.current && startPosRef.current) {
+      const start = startPosRef.current;
+      const cur = currentPosRef.current || start;
+      let draft: Annotation | null = null;
 
-        case 'highlight':
-          if (ann.x !== undefined && ann.y !== undefined && ann.width && ann.height) {
-            ctx.globalAlpha = 0.35;
-            ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
-          }
-          break;
-
-        case 'rect':
-          if (ann.x !== undefined && ann.y !== undefined && ann.width && ann.height) {
-            ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
-          }
-          break;
-
-        case 'circle':
-          if (ann.x !== undefined && ann.y !== undefined && ann.width && ann.height) {
-            ctx.beginPath();
-            const radiusX = Math.abs(ann.width) / 2;
-            const radiusY = Math.abs(ann.height) / 2;
-            const centerX = ann.x + ann.width / 2;
-            const centerY = ann.y + ann.height / 2;
-            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-            ctx.stroke();
-          }
-          break;
-
-        case 'arrow':
-          if (
-            ann.x !== undefined &&
-            ann.y !== undefined &&
-            ann.endX !== undefined &&
-            ann.endY !== undefined
-          ) {
-            ctx.beginPath();
-            ctx.moveTo(ann.x, ann.y);
-            ctx.lineTo(ann.endX, ann.endY);
-            ctx.stroke();
-
-            // Arrow head
-            const angle = Math.atan2(ann.endY - ann.y, ann.endX - ann.x);
-            const headLength = 14;
-            ctx.beginPath();
-            ctx.moveTo(ann.endX, ann.endY);
-            ctx.lineTo(
-              ann.endX - headLength * Math.cos(angle - Math.PI / 6),
-              ann.endY - headLength * Math.sin(angle - Math.PI / 6)
-            );
-            ctx.moveTo(ann.endX, ann.endY);
-            ctx.lineTo(
-              ann.endX - headLength * Math.cos(angle + Math.PI / 6),
-              ann.endY - headLength * Math.sin(angle + Math.PI / 6)
-            );
-            ctx.stroke();
-          }
-          break;
-
-        case 'text':
-          if (ann.x !== undefined && ann.y !== undefined && ann.text) {
-            let fontStyle = '';
-            if (ann.isItalic) fontStyle += 'italic ';
-            if (ann.isBold) fontStyle += 'bold ';
-            ctx.font = `${fontStyle}${ann.fontSize || 20}px sans-serif`;
-            ctx.fillText(ann.text, ann.x, ann.y);
-          }
-          break;
-
-        case 'signature_stamp':
-          if (ann.imageData && ann.x !== undefined && ann.y !== undefined) {
-            const w = ann.width || 160;
-            const h = ann.height || 80;
-            let img = imageCacheRef.current[ann.imageData];
-            if (!img) {
-              img = new Image();
-              img.src = ann.imageData;
-              imageCacheRef.current[ann.imageData] = img;
-              img.onload = () => redrawCanvas();
-            }
-            if (img.complete && img.naturalWidth > 0) {
-              ctx.drawImage(img, ann.x, ann.y, w, h);
-            }
-          }
-          break;
+      if (activeTool === 'pen' || activeTool === 'signature') {
+        if (currentPointsRef.current.length > 0) {
+          draft = {
+            id: '__draft__',
+            pageIndex: pageIdx,
+            type: activeTool,
+            color: strokeColor,
+            strokeWidth,
+            points: currentPointsRef.current,
+          };
+        }
+      } else if (activeTool === 'highlight') {
+        const box = computeHighlightRect(start, cur, strokeWidth);
+        if (box) {
+          draft = {
+            id: '__draft__',
+            pageIndex: pageIdx,
+            type: 'highlight',
+            color: strokeColor,
+            strokeWidth,
+            opacity: 0.35,
+            ...box,
+          };
+        }
+      } else if (activeTool === 'rect' || activeTool === 'circle') {
+        const x = Math.min(start.x, cur.x);
+        const y = Math.min(start.y, cur.y);
+        const width = Math.abs(cur.x - start.x);
+        const height = Math.abs(cur.y - start.y);
+        if (width >= 1 || height >= 1) {
+          draft = {
+            id: '__draft__',
+            pageIndex: pageIdx,
+            type: activeTool,
+            color: strokeColor,
+            strokeWidth,
+            x,
+            y,
+            width: Math.max(1, width),
+            height: Math.max(1, height),
+          };
+        }
+      } else if (activeTool === 'arrow') {
+        if (Math.hypot(cur.x - start.x, cur.y - start.y) >= 2) {
+          draft = {
+            id: '__draft__',
+            pageIndex: pageIdx,
+            type: 'arrow',
+            color: strokeColor,
+            strokeWidth,
+            x: start.x,
+            y: start.y,
+            endX: cur.x,
+            endY: cur.y,
+          };
+        }
       }
 
-      ctx.restore();
+      if (draft) {
+        drawAnnotationOnCanvas(ctx, draft);
+      }
     }
 
     // Draw selection bounding box if an annotation is selected
@@ -501,21 +664,35 @@ export default function AnnotatePdf() {
         ctx.restore();
       }
     }
-  }, [currentPage, annotations, selectedId]);
+  }, [currentPage, annotations, selectedId, activeTool, strokeColor, strokeWidth]);
 
-  // Adjust canvas size to match current page image
+  redrawCanvasRef.current = redrawCanvas;
+
+  // Initialize canvas internal dimensions ONLY when page image changes (avoid wiping bitmap mid-stroke!)
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !pageImages[currentPage - 1]) return;
+    const src = pageImages[currentPage - 1];
+    if (!canvas || !src) return;
 
+    let cancelled = false;
     const img = new Image();
-    img.src = pageImages[currentPage - 1];
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      redrawCanvas();
+    const applySize = () => {
+      if (cancelled || !canvasRef.current) return;
+      canvasRef.current.width = img.width;
+      canvasRef.current.height = img.height;
+      redrawCanvasRef.current();
     };
-  }, [currentPage, pageImages, redrawCanvas]);
+
+    img.onload = applySize;
+    img.src = src;
+    if (img.complete && img.naturalWidth > 0) {
+      applySize();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPage, pageImages]);
 
   useEffect(() => {
     redrawCanvas();
@@ -524,15 +701,18 @@ export default function AnnotatePdf() {
   // Delete currently selected annotation
   const handleDeleteSelected = useCallback(() => {
     if (!selectedId) return;
-    const remaining = annotations.filter((a) => a.id !== selectedId);
-    const nextHistory = history.slice(0, historyStep + 1);
+    const remaining = annotationsRef.current.filter((a) => a.id !== selectedId);
+    const nextHistory = historyRef.current.slice(0, historyStepRef.current + 1);
     nextHistory.push(remaining);
+    annotationsRef.current = remaining;
+    historyRef.current = nextHistory;
+    historyStepRef.current = nextHistory.length - 1;
     setHistory(nextHistory);
     setHistoryStep(nextHistory.length - 1);
     setAnnotations(remaining);
     setSelectedId(null);
     toast.success('Annotation removed');
-  }, [selectedId, annotations, history, historyStep]);
+  }, [selectedId]);
 
   // Keyboard shortcut to delete selected annotation
   useEffect(() => {
@@ -550,27 +730,26 @@ export default function AnnotatePdf() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, handleDeleteSelected]);
 
-  // Mouse & Touch coordinate helper
+  // Unified pointer-to-PDF-canvas coordinate mapper (works across screen sizes, zoom levels, scroll offsets & DPR)
   const getCoordinatesFromClient = (clientX: number, clientY: number): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
+    const rawX = (clientX - rect.left) * scaleX;
+    const rawY = (clientY - rect.top) * scaleY;
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
+      x: Math.max(0, Math.min(canvas.width, rawX)),
+      y: Math.max(0, Math.min(canvas.height, rawY)),
     };
-  };
-
-  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
-    return getCoordinatesFromClient(e.clientX, e.clientY);
   };
 
   const handleStartAt = (pos: Point) => {
     if (activeTool === 'select') {
       const pageIdx = currentPage - 1;
-      const pageAnns = annotations.filter((a) => a.pageIndex === pageIdx);
+      const pageAnns = annotationsRef.current.filter((a) => a.pageIndex === pageIdx);
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
 
@@ -591,24 +770,21 @@ export default function AnnotatePdf() {
 
       if (hit) {
         setSelectedId(hit.id);
+        isDraggingSelectedRef.current = true;
         setIsDraggingSelected(true);
-        setDragStartPoint(pos);
-        setDragAnnotationStart(JSON.parse(JSON.stringify(hit)));
+        dragStartPointRef.current = pos;
+        dragAnnotationStartRef.current = JSON.parse(JSON.stringify(hit));
       } else {
         setSelectedId(null);
+        isDraggingSelectedRef.current = false;
         setIsDraggingSelected(false);
-        setDragStartPoint(null);
-        setDragAnnotationStart(null);
+        dragStartPointRef.current = null;
+        dragAnnotationStartRef.current = null;
       }
       return;
     }
 
-    setIsDrawing(true);
-    setStartPos(pos);
-
-    if (activeTool === 'pen' || activeTool === 'signature') {
-      setCurrentPoints([pos]);
-    } else if (activeTool === 'text') {
+    if (activeTool === 'text') {
       addAnnotation({
         id: `ann-${Date.now()}`,
         pageIndex: currentPage - 1,
@@ -622,125 +798,154 @@ export default function AnnotatePdf() {
         isBold,
         isItalic,
       });
-      setIsDrawing(false);
+      isDrawingRef.current = false;
+      startPosRef.current = null;
+      currentPosRef.current = null;
+      return;
     }
+
+    isDrawingRef.current = true;
+    startPosRef.current = pos;
+    currentPosRef.current = pos;
+
+    if (activeTool === 'pen' || activeTool === 'signature') {
+      currentPointsRef.current = [pos];
+    } else {
+      currentPointsRef.current = [];
+    }
+
+    redrawCanvasRef.current();
   };
 
   const handleMoveAt = (pos: Point) => {
     if (activeTool === 'select') {
-      if (isDraggingSelected && dragStartPoint && dragAnnotationStart) {
-        const dx = pos.x - dragStartPoint.x;
-        const dy = pos.y - dragStartPoint.y;
+      if (isDraggingSelectedRef.current && dragStartPointRef.current && dragAnnotationStartRef.current) {
+        const startPt = dragStartPointRef.current;
+        const baseAnn = dragAnnotationStartRef.current;
+        const dx = pos.x - startPt.x;
+        const dy = pos.y - startPt.y;
 
-        let updated: Annotation = { ...dragAnnotationStart };
+        const updated: Annotation = { ...baseAnn };
 
-        if (dragAnnotationStart.type === 'pen' || dragAnnotationStart.type === 'signature') {
-          updated.points = dragAnnotationStart.points?.map((p) => ({
+        if (baseAnn.type === 'pen' || baseAnn.type === 'signature') {
+          updated.points = baseAnn.points?.map((p) => ({
             x: p.x + dx,
             y: p.y + dy,
           }));
-        } else if (dragAnnotationStart.type === 'arrow') {
-          updated.x = (dragAnnotationStart.x ?? 0) + dx;
-          updated.y = (dragAnnotationStart.y ?? 0) + dy;
-          updated.endX = (dragAnnotationStart.endX ?? 0) + dx;
-          updated.endY = (dragAnnotationStart.endY ?? 0) + dy;
+        } else if (baseAnn.type === 'arrow') {
+          updated.x = (baseAnn.x ?? 0) + dx;
+          updated.y = (baseAnn.y ?? 0) + dy;
+          updated.endX = (baseAnn.endX ?? 0) + dx;
+          updated.endY = (baseAnn.endY ?? 0) + dy;
         } else {
-          updated.x = (dragAnnotationStart.x ?? 0) + dx;
-          updated.y = (dragAnnotationStart.y ?? 0) + dy;
+          updated.x = (baseAnn.x ?? 0) + dx;
+          updated.y = (baseAnn.y ?? 0) + dy;
         }
 
-        setAnnotations((prev) =>
-          prev.map((a) => (a.id === dragAnnotationStart.id ? updated : a))
-        );
+        const nextList = annotationsRef.current.map((a) => (a.id === baseAnn.id ? updated : a));
+        annotationsRef.current = nextList;
+        setAnnotations(nextList);
+        redrawCanvasRef.current();
       }
       return;
     }
 
-    if (!isDrawing) return;
+    if (!isDrawingRef.current || !startPosRef.current) return;
 
+    currentPosRef.current = pos;
     if (activeTool === 'pen' || activeTool === 'signature') {
-      setCurrentPoints((prev) => {
-        const next = [...prev, pos];
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const ctx = canvas.getContext('2d');
-          if (ctx && next.length > 1) {
-            ctx.strokeStyle = strokeColor;
-            ctx.lineWidth = strokeWidth;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            ctx.moveTo(next[next.length - 2].x, next[next.length - 2].y);
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-          }
-        }
-        return next;
-      });
+      currentPointsRef.current = [...currentPointsRef.current, pos];
     }
+
+    redrawCanvasRef.current();
+  };
+
+  const cancelActiveInteraction = () => {
+    if (isDraggingSelectedRef.current && dragAnnotationStartRef.current) {
+      const original = dragAnnotationStartRef.current;
+      const restored = annotationsRef.current.map((a) => (a.id === original.id ? original : a));
+      annotationsRef.current = restored;
+      setAnnotations(restored);
+    }
+    isDraggingSelectedRef.current = false;
+    dragStartPointRef.current = null;
+    dragAnnotationStartRef.current = null;
+    setIsDraggingSelected(false);
+
+    isDrawingRef.current = false;
+    startPosRef.current = null;
+    currentPosRef.current = null;
+    currentPointsRef.current = [];
+    redrawCanvasRef.current();
   };
 
   const handleEndAt = (pos: Point) => {
     if (activeTool === 'select') {
-      if (isDraggingSelected && dragStartPoint && dragAnnotationStart) {
+      if (isDraggingSelectedRef.current && dragStartPointRef.current && dragAnnotationStartRef.current) {
         const currentAnns = annotationsRef.current;
-        const nextHistory = history.slice(0, historyStep + 1);
+        const nextHistory = historyRef.current.slice(0, historyStepRef.current + 1);
         nextHistory.push(currentAnns);
+        historyRef.current = nextHistory;
+        historyStepRef.current = nextHistory.length - 1;
         setHistory(nextHistory);
         setHistoryStep(nextHistory.length - 1);
       }
+      isDraggingSelectedRef.current = false;
+      dragStartPointRef.current = null;
+      dragAnnotationStartRef.current = null;
       setIsDraggingSelected(false);
-      setDragStartPoint(null);
-      setDragAnnotationStart(null);
       return;
     }
 
-    if (!isDrawing || !startPos) return;
-    setIsDrawing(false);
+    const start = startPosRef.current;
+    if (!isDrawingRef.current || !start) return;
+
+    const finalPos = pos || currentPosRef.current || start;
+    const drawnPoints =
+      currentPointsRef.current.length > 0 ? [...currentPointsRef.current, finalPos] : [start, finalPos];
+
+    isDrawingRef.current = false;
+    startPosRef.current = null;
+    currentPosRef.current = null;
+    currentPointsRef.current = [];
 
     if (activeTool === 'pen' || activeTool === 'signature') {
-      if (currentPoints.length > 0) {
+      if (drawnPoints.length >= 2) {
         addAnnotation({
           id: `ann-${Date.now()}`,
           pageIndex: currentPage - 1,
           type: activeTool,
           color: strokeColor,
           strokeWidth,
-          points: currentPoints,
+          points: drawnPoints,
         });
       }
-      setCurrentPoints([]);
-    } else if (activeTool === 'highlight' || activeTool === 'rect') {
-      const x = Math.min(startPos.x, pos.x);
-      const y = Math.min(startPos.y, pos.y);
-      const width = Math.abs(pos.x - startPos.x);
-      const height = Math.abs(pos.y - startPos.y);
+    } else if (activeTool === 'highlight') {
+      const box = computeHighlightRect(start, finalPos, strokeWidth);
+      if (box) {
+        addAnnotation({
+          id: `ann-${Date.now()}`,
+          pageIndex: currentPage - 1,
+          type: 'highlight',
+          color: strokeColor,
+          strokeWidth,
+          opacity: 0.35,
+          ...box,
+        });
+      } else {
+        redrawCanvasRef.current();
+      }
+    } else if (activeTool === 'rect' || activeTool === 'circle') {
+      const x = Math.min(start.x, finalPos.x);
+      const y = Math.min(start.y, finalPos.y);
+      const width = Math.abs(finalPos.x - start.x);
+      const height = Math.abs(finalPos.y - start.y);
 
-      if (width > 3 && height > 3) {
+      if (width >= 3 && height >= 3) {
         addAnnotation({
           id: `ann-${Date.now()}`,
           pageIndex: currentPage - 1,
           type: activeTool,
-          color: strokeColor,
-          strokeWidth,
-          opacity: activeTool === 'highlight' ? 0.35 : 1.0,
-          x,
-          y,
-          width,
-          height,
-        });
-      }
-    } else if (activeTool === 'circle') {
-      const x = Math.min(startPos.x, pos.x);
-      const y = Math.min(startPos.y, pos.y);
-      const width = Math.abs(pos.x - startPos.x);
-      const height = Math.abs(pos.y - startPos.y);
-
-      if (width > 3 && height > 3) {
-        addAnnotation({
-          id: `ann-${Date.now()}`,
-          pageIndex: currentPage - 1,
-          type: 'circle',
           color: strokeColor,
           strokeWidth,
           x,
@@ -748,64 +953,101 @@ export default function AnnotatePdf() {
           width,
           height,
         });
+      } else {
+        redrawCanvasRef.current();
       }
     } else if (activeTool === 'arrow') {
-      addAnnotation({
-        id: `ann-${Date.now()}`,
-        pageIndex: currentPage - 1,
-        type: 'arrow',
-        color: strokeColor,
-        strokeWidth,
-        x: startPos.x,
-        y: startPos.y,
-        endX: pos.x,
-        endY: pos.y,
-      });
+      const dist = Math.hypot(finalPos.x - start.x, finalPos.y - start.y);
+      if (dist >= 4) {
+        addAnnotation({
+          id: `ann-${Date.now()}`,
+          pageIndex: currentPage - 1,
+          type: 'arrow',
+          color: strokeColor,
+          strokeWidth,
+          x: start.x,
+          y: start.y,
+          endX: finalPos.x,
+          endY: finalPos.y,
+        });
+      } else {
+        redrawCanvasRef.current();
+      }
     }
-
-    setStartPos(null);
   };
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const pos = getCanvasCoordinates(e);
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (activePointerIdRef.current !== null) return;
+    e.preventDefault();
+    activePointerIdRef.current = e.pointerId;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Synthetic events in automated browsers may skip pointer capture
+    }
+    const pos = getCoordinatesFromClient(e.clientX, e.clientY);
     handleStartAt(pos);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const pos = getCanvasCoordinates(e);
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== e.pointerId) return;
+    if (!isDrawingRef.current && !isDraggingSelectedRef.current) return;
+    e.preventDefault();
+
+    if (
+      (activeTool === 'pen' || activeTool === 'signature') &&
+      typeof e.nativeEvent.getCoalescedEvents === 'function'
+    ) {
+      const coalesced = e.nativeEvent.getCoalescedEvents();
+      if (coalesced.length > 0) {
+        for (const ce of coalesced) {
+          handleMoveAt(getCoordinatesFromClient(ce.clientX, ce.clientY));
+        }
+        return;
+      }
+    }
+
+    const pos = getCoordinatesFromClient(e.clientX, e.clientY);
     handleMoveAt(pos);
   };
 
-  const handleMouseUp = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const pos = getCanvasCoordinates(e);
+  const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== e.pointerId) return;
+    activePointerIdRef.current = null;
+    try {
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore release errors
+    }
+    const pos = getCoordinatesFromClient(e.clientX, e.clientY);
     handleEndAt(pos);
   };
 
-  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length > 0) {
-      e.preventDefault();
-      const t = e.touches[0];
-      const pos = getCoordinatesFromClient(t.clientX, t.clientY);
-      handleStartAt(pos);
+  const handlePointerCancel = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== e.pointerId) return;
+    activePointerIdRef.current = null;
+    try {
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore release errors
     }
+    cancelActiveInteraction();
   };
 
-  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length > 0) {
-      e.preventDefault();
-      const t = e.touches[0];
-      const pos = getCoordinatesFromClient(t.clientX, t.clientY);
-      handleMoveAt(pos);
+  const handleLostPointerCapture = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (activePointerIdRef.current !== e.pointerId) return;
+    activePointerIdRef.current = null;
+    const fallbackPos = currentPosRef.current || startPosRef.current;
+    if (fallbackPos) {
+      handleEndAt(fallbackPos);
+    } else {
+      cancelActiveInteraction();
     }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const pos =
-      currentPoints.length > 0
-        ? currentPoints[currentPoints.length - 1]
-        : (startPos || { x: 0, y: 0 });
-    handleEndAt(pos);
   };
 
   // Export baked PDF
@@ -833,104 +1075,22 @@ export default function AnnotatePdf() {
         // Draw page image
         ctx.drawImage(img, 0, 0);
 
-        // Draw annotations
+        // Draw annotations using the exact shared canvas renderer
         for (const ann of pageAnns) {
-          ctx.save();
-          ctx.strokeStyle = ann.color;
-          ctx.fillStyle = ann.color;
-          ctx.lineWidth = ann.strokeWidth;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          if (ann.opacity) ctx.globalAlpha = ann.opacity;
-
-          switch (ann.type) {
-            case 'pen':
-            case 'signature':
-              if (ann.points && ann.points.length > 1) {
-                ctx.beginPath();
-                ctx.moveTo(ann.points[0].x, ann.points[0].y);
-                for (let i = 1; i < ann.points.length; i++) {
-                  ctx.lineTo(ann.points[i].x, ann.points[i].y);
-                }
-                ctx.stroke();
+          if (ann.type === 'signature_stamp' && ann.imageData && ann.x !== undefined && ann.y !== undefined) {
+            const stampImg = new Image();
+            stampImg.src = ann.imageData;
+            await new Promise((res) => {
+              if (stampImg.complete) res(null);
+              else {
+                stampImg.onload = () => res(null);
+                stampImg.onerror = () => res(null);
               }
-              break;
-            case 'highlight':
-              if (ann.x !== undefined && ann.y !== undefined && ann.width && ann.height) {
-                ctx.globalAlpha = 0.35;
-                ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
-              }
-              break;
-            case 'rect':
-              if (ann.x !== undefined && ann.y !== undefined && ann.width && ann.height) {
-                ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
-              }
-              break;
-            case 'circle':
-              if (ann.x !== undefined && ann.y !== undefined && ann.width && ann.height) {
-                ctx.beginPath();
-                const radiusX = Math.abs(ann.width) / 2;
-                const radiusY = Math.abs(ann.height) / 2;
-                const centerX = ann.x + ann.width / 2;
-                const centerY = ann.y + ann.height / 2;
-                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                ctx.stroke();
-              }
-              break;
-            case 'arrow':
-              if (
-                ann.x !== undefined &&
-                ann.y !== undefined &&
-                ann.endX !== undefined &&
-                ann.endY !== undefined
-              ) {
-                ctx.beginPath();
-                ctx.moveTo(ann.x, ann.y);
-                ctx.lineTo(ann.endX, ann.endY);
-                ctx.stroke();
-                const angle = Math.atan2(ann.endY - ann.y, ann.endX - ann.x);
-                const headLength = 14;
-                ctx.beginPath();
-                ctx.moveTo(ann.endX, ann.endY);
-                ctx.lineTo(
-                  ann.endX - headLength * Math.cos(angle - Math.PI / 6),
-                  ann.endY - headLength * Math.sin(angle - Math.PI / 6)
-                );
-                ctx.moveTo(ann.endX, ann.endY);
-                ctx.lineTo(
-                  ann.endX - headLength * Math.cos(angle + Math.PI / 6),
-                  ann.endY - headLength * Math.sin(angle + Math.PI / 6)
-                );
-                ctx.stroke();
-              }
-              break;
-            case 'text':
-              if (ann.x !== undefined && ann.y !== undefined && ann.text) {
-                let fontStyle = '';
-                if (ann.isItalic) fontStyle += 'italic ';
-                if (ann.isBold) fontStyle += 'bold ';
-                ctx.font = `${fontStyle}${ann.fontSize || 20}px sans-serif`;
-                ctx.fillText(ann.text, ann.x, ann.y);
-              }
-              break;
-            case 'signature_stamp':
-              if (ann.imageData && ann.x !== undefined && ann.y !== undefined) {
-                const w = ann.width || 160;
-                const h = ann.height || 80;
-                const stampImg = new Image();
-                stampImg.src = ann.imageData;
-                await new Promise((res) => {
-                  if (stampImg.complete) res(null);
-                  else {
-                    stampImg.onload = () => res(null);
-                    stampImg.onerror = () => res(null);
-                  }
-                });
-                ctx.drawImage(stampImg, ann.x, ann.y, w, h);
-              }
-              break;
+            });
+            drawAnnotationOnCanvas(ctx, ann, { [ann.imageData]: stampImg });
+          } else {
+            drawAnnotationOnCanvas(ctx, ann);
           }
-          ctx.restore();
         }
 
         const pagePngData = offCanvas.toDataURL('image/png');
@@ -961,14 +1121,18 @@ export default function AnnotatePdf() {
     setFile(null);
     setPdfData(null);
     setPageImages([]);
+    annotationsRef.current = [];
+    historyRef.current = [];
+    historyStepRef.current = -1;
     setAnnotations([]);
     setHistory([]);
     setHistoryStep(-1);
+    setSelectedId(null);
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-6">
+    <div className="container mx-auto px-3 sm:px-4 py-5 sm:py-8 max-w-6xl">
+      <div className="mb-5 sm:mb-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
             <Type className="h-5 w-5" />
@@ -1037,7 +1201,7 @@ export default function AnnotatePdf() {
                 <Button
                   variant={activeTool === 'pen' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-xs shrink-0 whitespace-nowrap"
                   onClick={() => {
                     setActiveTool('pen');
                     setSelectedId(null);
@@ -1049,7 +1213,7 @@ export default function AnnotatePdf() {
                 <Button
                   variant={activeTool === 'highlight' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-xs shrink-0 whitespace-nowrap"
                   onClick={() => {
                     setActiveTool('highlight');
                     setSelectedId(null);
@@ -1062,7 +1226,7 @@ export default function AnnotatePdf() {
                 <Button
                   variant={activeTool === 'text' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-xs shrink-0 whitespace-nowrap"
                   onClick={() => {
                     setActiveTool('text');
                     setSelectedId(null);
@@ -1074,7 +1238,7 @@ export default function AnnotatePdf() {
                 <Button
                   variant={activeTool === 'rect' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-xs shrink-0 whitespace-nowrap"
                   onClick={() => {
                     setActiveTool('rect');
                     setSelectedId(null);
@@ -1086,7 +1250,7 @@ export default function AnnotatePdf() {
                 <Button
                   variant={activeTool === 'circle' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-xs shrink-0 whitespace-nowrap"
                   onClick={() => {
                     setActiveTool('circle');
                     setSelectedId(null);
@@ -1098,7 +1262,7 @@ export default function AnnotatePdf() {
                 <Button
                   variant={activeTool === 'arrow' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-xs shrink-0 whitespace-nowrap"
                   onClick={() => {
                     setActiveTool('arrow');
                     setSelectedId(null);
@@ -1110,7 +1274,7 @@ export default function AnnotatePdf() {
                 <Button
                   variant={activeTool === 'signature' ? 'default' : 'ghost'}
                   size="sm"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-xs shrink-0 whitespace-nowrap"
                   onClick={() => {
                     setActiveTool('signature');
                     setSelectedId(null);
@@ -1302,7 +1466,7 @@ export default function AnnotatePdf() {
           {/* Interactive Workspace Canvas */}
           <div
             ref={containerRef}
-            className="flex justify-center items-center bg-muted/30 border rounded-xl p-4 overflow-auto min-h-[500px]"
+            className="flex justify-center items-center bg-muted/30 border rounded-xl p-2 sm:p-4 overflow-auto min-h-[340px] sm:min-h-[500px]"
           >
             {loading ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground py-20">
@@ -1314,21 +1478,17 @@ export default function AnnotatePdf() {
                 className="relative shadow-lg border rounded bg-white overflow-hidden"
                 style={{
                   backgroundImage: `url(${pageImages[currentPage - 1]})`,
-                  backgroundSize: 'contain',
+                  backgroundSize: '100% 100%',
                   backgroundRepeat: 'no-repeat',
                 }}
               >
                 <canvas
                   ref={canvasRef}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={(e) => {
-                    if (isDrawing || isDraggingSelected) handleMouseUp(e);
-                  }}
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
+                  onPointerDown={handlePointerDown}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerCancel}
+                  onLostPointerCapture={handleLostPointerCapture}
                   style={{
                     touchAction: 'none',
                     cursor:
@@ -1383,8 +1543,9 @@ function SignatureVaultModal({
   const [tab, setTab] = useState<'saved' | 'draw' | 'upload'>('saved');
   const [sigName, setSigName] = useState<string>('My Signature');
   const [inkColor, setInkColor] = useState<string>('#0f172a');
-  const [isDrawing, setIsDrawing] = useState<boolean>(false);
   const padRef = useRef<HTMLCanvasElement>(null);
+  const padDrawingRef = useRef<boolean>(false);
+  const padPointerIdRef = useRef<number | null>(null);
   const [padHasStrokes, setPadHasStrokes] = useState<boolean>(false);
 
   // Setup drawing canvas
@@ -1410,61 +1571,70 @@ function SignatureVaultModal({
     setPadHasStrokes(false);
   };
 
-  const getPadCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const getPadCoordinates = (clientX: number, clientY: number) => {
     const canvas = padRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-
-    let clientX = 0;
-    let clientY = 0;
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
+      x: Math.max(0, Math.min(canvas.width, (clientX - rect.left) * scaleX)),
+      y: Math.max(0, Math.min(canvas.height, (clientY - rect.top) * scaleY)),
     };
   };
 
-  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const handlePadPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (padPointerIdRef.current !== null) return;
     e.preventDefault();
     const canvas = padRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const pos = getPadCoordinates(e);
+    padPointerIdRef.current = e.pointerId;
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore synthetic events
+    }
+
+    const pos = getPadCoordinates(e.clientX, e.clientY);
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
     ctx.strokeStyle = inkColor;
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    setIsDrawing(true);
+    padDrawingRef.current = true;
     setPadHasStrokes(true);
   };
 
-  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing) return;
+  const handlePadPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (padPointerIdRef.current !== e.pointerId || !padDrawingRef.current) return;
     e.preventDefault();
     const canvas = padRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const pos = getPadCoordinates(e);
+    const pos = getPadCoordinates(e.clientX, e.clientY);
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
+  const handlePadPointerEnd = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (padPointerIdRef.current !== e.pointerId) return;
+    padPointerIdRef.current = null;
+    padDrawingRef.current = false;
+    try {
+      if (e.currentTarget.hasPointerCapture?.(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    } catch {
+      // Ignore release errors
+    }
   };
 
   const handleSaveAndUseDrawn = () => {
@@ -1672,13 +1842,12 @@ function SignatureVaultModal({
             <div className="border-2 border-dashed border-border rounded-lg bg-white overflow-hidden relative shadow-xs">
               <canvas
                 ref={padRef}
-                onMouseDown={startDrawing}
-                onMouseMove={draw}
-                onMouseUp={stopDrawing}
-                onMouseLeave={stopDrawing}
-                onTouchStart={startDrawing}
-                onTouchMove={draw}
-                onTouchEnd={stopDrawing}
+                onPointerDown={handlePadPointerDown}
+                onPointerMove={handlePadPointerMove}
+                onPointerUp={handlePadPointerEnd}
+                onPointerCancel={handlePadPointerEnd}
+                onLostPointerCapture={handlePadPointerEnd}
+                style={{ touchAction: 'none' }}
                 className="w-full h-36 block select-none cursor-crosshair touch-none"
               />
               <div className="absolute bottom-2 right-2 flex items-center gap-1">

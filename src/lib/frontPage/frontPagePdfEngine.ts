@@ -8,7 +8,7 @@ export const MAX_LOGO_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 export const MAX_EXISTING_PDF_SIZE = 100 * 1024 * 1024; // 100 MB
 
 export const DEFAULT_COLLEGE_NAME = 'KALYANI GOVERNMENT ENGINEERING COLLEGE';
-export const DEFAULT_COLLEGE_FONT_SIZE_PT = 15;
+export const DEFAULT_COLLEGE_FONT_SIZE_PT = 19;
 export const MIN_COLLEGE_FONT_SIZE_PT = 12;
 export const MAX_COLLEGE_FONT_SIZE_PT = 30;
 export const DEFAULT_BORDER_MARGIN_PT = 44;
@@ -19,7 +19,7 @@ export const MIN_LOGO_SIZE_PT = 44;
 export const MAX_LOGO_SIZE_PT = 110;
 
 export type LogoMode = 'kgec' | 'custom' | 'none';
-export type LogoPosition = 'left' | 'center';
+export type LogoPosition = 'left' | 'center' | 'below-name';
 export type LogoImageFormat = 'png' | 'jpg';
 
 export interface LogoImagePayload {
@@ -653,8 +653,10 @@ function buildLayoutPlan(
   const headerPadX = 20 * scale;
   const drawLogo = logoMode !== 'none' && logoDims !== null;
 
-  // 1. Logo Geometry (strict aspect ratio preservation!)
-  let logoRect: { x: number; y: number; width: number; height: number } | null = null;
+  // 1. Logo Dimensions & Horizontal Alignment (strict aspect ratio preservation!)
+  let logoDrawW = 0;
+  let logoDrawH = 0;
+  let logoX = innerLeft + headerPadX;
   if (drawLogo && logoDims) {
     const targetBox = Math.max(32, logoSizePt * (0.55 + 0.45 * scale));
     const maxAllowedW =
@@ -663,30 +665,29 @@ function buildLayoutPlan(
         : Math.min(targetBox * 2.2, innerWidth * 0.6);
     const maxAllowedH = targetBox;
     const ratio = Math.min(maxAllowedW / logoDims.width, maxAllowedH / logoDims.height);
-    const drawW = logoDims.width * ratio;
-    const drawH = logoDims.height * ratio;
+    logoDrawW = logoDims.width * ratio;
+    logoDrawH = logoDims.height * ratio;
 
-    const logoX =
-      logoPosition === 'center'
-        ? innerLeft + (innerWidth - drawW) / 2
+    logoX =
+      logoPosition === 'center' || logoPosition === 'below-name'
+        ? innerLeft + (innerWidth - logoDrawW) / 2
         : innerLeft + headerPadX;
-    const logoY = innerTop - headerPadTop - drawH;
-    logoRect = { x: logoX, y: logoY, width: drawW, height: drawH };
   }
 
-  // 2. Bold College Name Typography & Header Alignment
+  // 2. Bold College Name Typography & Header Width
   const cleanCollege = sanitizeWinAnsiText(collegeName, true);
-  let collegeBlockX = innerLeft + headerPadX;
-  let collegeBlockWidth = innerWidth - 2 * headerPadX;
+  const fullWidthHeaderPadX = 12 * scale;
+  let collegeBlockX = innerLeft + fullWidthHeaderPadX;
+  let collegeBlockWidth = innerWidth - 2 * fullWidthHeaderPadX;
   const collegeAlign: 'left' | 'center' = 'center';
 
-  if (logoRect && logoPosition === 'left') {
+  if (drawLogo && logoPosition === 'left') {
     const logoTextGap = 14 * scale;
-    collegeBlockX = logoRect.x + logoRect.width + logoTextGap;
+    collegeBlockX = logoX + logoDrawW + logoTextGap;
     collegeBlockWidth = Math.max(90, innerRight - headerPadX - collegeBlockX);
   } else {
-    collegeBlockX = innerLeft + headerPadX;
-    collegeBlockWidth = innerWidth - 2 * headerPadX;
+    collegeBlockX = innerLeft + fullWidthHeaderPadX;
+    collegeBlockWidth = innerWidth - 2 * fullWidthHeaderPadX;
   }
 
   const clampedRequestedCollegeSize = Math.min(
@@ -702,10 +703,14 @@ function buildLayoutPlan(
   const capHeightRatio = 0.68;
   const nCollegeLines = collegeLines.length;
 
+  let logoRect: { x: number; y: number; width: number; height: number } | null = null;
   let collegeFirstBaselineY: number;
   let headerBottomY: number;
 
-  if (logoRect && logoPosition === 'left') {
+  if (drawLogo && logoDims && logoPosition === 'left') {
+    const logoY = innerTop - headerPadTop - logoDrawH;
+    logoRect = { x: logoX, y: logoY, width: logoDrawW, height: logoDrawH };
+
     if (nCollegeLines > 0) {
       const logoCenterY = logoRect.y + logoRect.height / 2;
       // Optically align vertical midpoint of all wrapped lines with the logo center
@@ -723,13 +728,31 @@ function buildLayoutPlan(
       collegeFirstBaselineY = innerTop - headerPadTop - capHeightRatio * collegeFontSize;
       headerBottomY = logoRect.y;
     }
-  } else if (logoRect && logoPosition === 'center') {
+  } else if (drawLogo && logoDims && logoPosition === 'center') {
+    const logoY = innerTop - headerPadTop - logoDrawH;
+    logoRect = { x: logoX, y: logoY, width: logoDrawW, height: logoDrawH };
+
     if (nCollegeLines > 0) {
       const gapLogoToName = 16 * scale;
       collegeFirstBaselineY = logoRect.y - gapLogoToName - capHeightRatio * collegeFontSize;
       const lastBaselineY = collegeFirstBaselineY - (nCollegeLines - 1) * collegeLineHeight;
       headerBottomY = lastBaselineY - collegeFontSize * 0.25;
     } else {
+      collegeFirstBaselineY = logoRect.y;
+      headerBottomY = logoRect.y;
+    }
+  } else if (drawLogo && logoDims && logoPosition === 'below-name') {
+    if (nCollegeLines > 0) {
+      collegeFirstBaselineY = innerTop - 26 * scale - capHeightRatio * collegeFontSize;
+      const lastBaselineY = collegeFirstBaselineY - (nCollegeLines - 1) * collegeLineHeight;
+      const textBottomY = lastBaselineY - collegeFontSize * 0.25;
+      const gapNameToLogo = 18 * scale;
+      const logoY = textBottomY - gapNameToLogo - logoDrawH;
+      logoRect = { x: logoX, y: logoY, width: logoDrawW, height: logoDrawH };
+      headerBottomY = logoRect.y;
+    } else {
+      const logoY = innerTop - headerPadTop - logoDrawH;
+      logoRect = { x: logoX, y: logoY, width: logoDrawW, height: logoDrawH };
       collegeFirstBaselineY = logoRect.y;
       headerBottomY = logoRect.y;
     }

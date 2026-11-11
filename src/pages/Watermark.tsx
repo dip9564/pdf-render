@@ -48,6 +48,55 @@ const loadImage = (src: string): Promise<HTMLImageElement> => {
   });
 };
 
+interface WatermarkFontSpec {
+  id: 'Helvetica' | 'Times-Roman' | 'Courier';
+  label: string;
+  canvasStack: string;
+  pdfStandardFont: StandardFonts;
+}
+
+const WATERMARK_FONTS: WatermarkFontSpec[] = [
+  {
+    id: 'Helvetica',
+    label: 'Helvetica',
+    canvasStack:
+      '"Helvetica Neue", Helvetica, Arial, "Liberation Sans", "Nimbus Sans", "Noto Sans", sans-serif',
+    pdfStandardFont: StandardFonts.HelveticaBold,
+  },
+  {
+    id: 'Times-Roman',
+    label: 'Times New Roman',
+    canvasStack:
+      '"Times New Roman", Times, Georgia, "Liberation Serif", "Nimbus Roman", "Noto Serif", serif',
+    pdfStandardFont: StandardFonts.TimesRomanBold,
+  },
+  {
+    id: 'Courier',
+    label: 'Courier',
+    canvasStack:
+      '"Courier New", Courier, "Liberation Mono", "Nimbus Mono PS", "Noto Sans Mono", monospace',
+    pdfStandardFont: StandardFonts.CourierBold,
+  },
+];
+
+function resolveWatermarkFont(family: string): WatermarkFontSpec {
+  const exact = WATERMARK_FONTS.find((f) => f.id === family);
+  if (exact) return exact;
+
+  const normalized = family.trim().toLowerCase();
+  if (
+    normalized.includes('times') ||
+    normalized.includes('georgia') ||
+    normalized.includes('serif')
+  ) {
+    return WATERMARK_FONTS[1];
+  }
+  if (normalized.includes('courier') || normalized.includes('mono')) {
+    return WATERMARK_FONTS[2];
+  }
+  return WATERMARK_FONTS[0];
+}
+
 
 export default function Watermark() {
   const [file, setFile] = useState<File | null>(null);
@@ -83,6 +132,8 @@ export default function Watermark() {
   const [pageAspectRatio, setPageAspectRatio] = useState<number>(1 / 1.414);
   const desktopCanvasRef = useRef<HTMLCanvasElement>(null);
   const mobileCanvasRef = useRef<HTMLCanvasElement>(null);
+  const baseImageCacheRef = useRef<{ src: string; img: HTMLImageElement } | null>(null);
+  const previewRenderSeqRef = useRef<number>(0);
   const [mobileTab, setMobileTab] = useState<'content' | 'layout'>('content');
 
   const handleFileSelected = useCallback(
@@ -118,31 +169,67 @@ export default function Watermark() {
     [getPageCount, renderPage]
   );
 
-  const handleImageWatermarkSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const loadWatermarkImageFile = async (selectedFile: File | undefined) => {
+    if (!selectedFile) return;
+    const isValid =
+      selectedFile.type === 'image/png' ||
+      selectedFile.type === 'image/jpeg' ||
+      /\.(png|jpe?g)$/i.test(selectedFile.name);
+    if (!isValid) {
+      toast.error('Please select a PNG or JPG image');
+      return;
+    }
 
-    setWatermarkImageFile(file);
-    const buffer = await readFileAsArrayBuffer(file);
+    setWatermarkImageFile(selectedFile);
+    const buffer = await readFileAsArrayBuffer(selectedFile);
     setWatermarkImageData(buffer);
 
     const reader = new FileReader();
     reader.onload = () => setWatermarkImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const handleImageWatermarkSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    e.target.value = '';
+    await loadWatermarkImageFile(selectedFile);
   };
 
   // Draw overlay preview on canvas
   useEffect(() => {
-    if (!firstPagePreview) return;
+    if (!firstPagePreview || loading) return;
 
     let isCancelled = false;
+    const renderSeq = ++previewRenderSeqRef.current;
 
     const renderPreview = async () => {
       try {
-        const baseImg = await loadImage(firstPagePreview);
+        const fontSpec = resolveWatermarkFont(fontFamily);
+        const fontDeclaration = `bold ${fontSize}px ${fontSpec.canvasStack}`;
+
+        let baseImg: HTMLImageElement;
+        if (baseImageCacheRef.current?.src === firstPagePreview) {
+          baseImg = baseImageCacheRef.current.img;
+        } else {
+          baseImg = await loadImage(firstPagePreview);
+          baseImageCacheRef.current = { src: firstPagePreview, img: baseImg };
+        }
+        if (isCancelled || renderSeq !== previewRenderSeqRef.current) return;
+
         if (baseImg.width && baseImg.height) {
           setPageAspectRatio(baseImg.width / baseImg.height);
         }
+
+        if (watermarkType === 'text' && typeof document !== 'undefined' && 'fonts' in document) {
+          try {
+            await document.fonts.ready;
+            await document.fonts.load(fontDeclaration, text || 'CONFIDENTIAL');
+          } catch {
+            // Fall back cleanly if browser rejects font-loading query
+          }
+          if (isCancelled || renderSeq !== previewRenderSeqRef.current) return;
+        }
+
         let wmImg: HTMLImageElement | null = null;
         if (watermarkType === 'image' && watermarkImagePreview) {
           try {
@@ -152,7 +239,7 @@ export default function Watermark() {
           }
         }
 
-        if (isCancelled) return;
+        if (isCancelled || renderSeq !== previewRenderSeqRef.current) return;
 
         const canvases = [desktopCanvasRef.current, mobileCanvasRef.current].filter(
           Boolean
@@ -202,7 +289,7 @@ export default function Watermark() {
 
           if (watermarkType === 'text') {
             ctx.fillStyle = textColor;
-            ctx.font = `bold ${fontSize}px sans-serif`;
+            ctx.font = fontDeclaration;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(text, 0, 0);
@@ -226,9 +313,11 @@ export default function Watermark() {
     };
   }, [
     firstPagePreview,
+    loading,
     watermarkType,
     text,
     fontSize,
+    fontFamily,
     textColor,
     opacity,
     rotation,
@@ -268,12 +357,8 @@ export default function Watermark() {
       const { r, g, b } = hexToRgb(textColor);
 
       // Embed font if text
-      let pdfFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      if (fontFamily === 'Times-Roman') {
-        pdfFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-      } else if (fontFamily === 'Courier') {
-        pdfFont = await pdfDoc.embedFont(StandardFonts.CourierBold);
-      }
+      const selectedFontSpec = resolveWatermarkFont(fontFamily);
+      const pdfFont = await pdfDoc.embedFont(selectedFontSpec.pdfStandardFont);
 
       // Embed image if image watermark
       let embeddedImage: any = null;
@@ -362,6 +447,8 @@ export default function Watermark() {
   };
 
   const handleReset = () => {
+    previewRenderSeqRef.current += 1;
+    baseImageCacheRef.current = null;
     setFile(null);
     setPdfData(null);
     setFirstPagePreview(null);
@@ -440,7 +527,7 @@ export default function Watermark() {
           )}
           <p className="text-[10px] sm:text-[11px] text-center text-muted-foreground truncate w-full">
             {watermarkType === 'text'
-              ? `Text: "${text || 'Watermark'}" • ${fontSize}px`
+              ? `Text: "${text || 'Watermark'}" • ${resolveWatermarkFont(fontFamily).label} • ${fontSize}px`
               : `Logo (${imageScale}%)`}{' '}
             • Pos: {position} • Opacity: {Math.round(opacity * 100)}% • Rot: {rotation}°
           </p>
@@ -485,15 +572,19 @@ export default function Watermark() {
 
             <div className="grid grid-cols-2 gap-2 sm:gap-4">
               <div className="space-y-1">
-                <Label className="text-xs font-medium">Font Family</Label>
+                <Label htmlFor="wm-font-family" className="text-xs font-medium">
+                  Font Family
+                </Label>
                 <Select value={fontFamily} onValueChange={setFontFamily}>
-                  <SelectTrigger className="h-8 sm:h-9 text-xs">
+                  <SelectTrigger id="wm-font-family" className="h-8 sm:h-9 text-xs">
                     <SelectValue placeholder="Font" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Helvetica">Helvetica</SelectItem>
-                    <SelectItem value="Times-Roman">Times New Roman</SelectItem>
-                    <SelectItem value="Courier">Courier</SelectItem>
+                    {WATERMARK_FONTS.map((f) => (
+                      <SelectItem key={f.id} value={f.id}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -537,63 +628,109 @@ export default function Watermark() {
 
           {/* Image Watermark Controls */}
           <TabsContent value="image" className="space-y-3 mt-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-medium">
-                Upload Logo / Image (PNG or JPG)
-              </Label>
-              <Input
-                type="file"
-                accept="image/png,image/jpeg"
-                onChange={handleImageWatermarkSelected}
-                className="h-8 sm:h-9 text-xs"
-              />
-            </div>
-
-            {watermarkImagePreview && (
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2.5 p-2 border rounded-lg bg-muted/40">
-                  <img
-                    src={watermarkImagePreview}
-                    alt="Watermark logo"
-                    className="h-9 w-9 object-contain rounded border bg-white p-0.5 shrink-0"
+            {(() => {
+              const imageInputId = isMobile ? 'wm-logo-upload-mobile' : 'wm-logo-upload-desktop';
+              return (
+                <div className="space-y-2.5">
+                  <Label htmlFor={imageInputId} className="text-xs font-medium block">
+                    Upload Logo / Image (PNG or JPG)
+                  </Label>
+                  <input
+                    id={imageInputId}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleImageWatermarkSelected}
+                    className="sr-only peer"
                   />
-                  <div className="text-xs truncate flex-1 min-w-0">
-                    <div className="font-medium truncate text-[11px] sm:text-xs">
-                      {watermarkImageFile?.name || 'Selected Logo'}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">
-                      {formatFileSize(watermarkImageFile?.size || 0)}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 text-[11px] text-destructive hover:text-destructive px-2 shrink-0"
-                    onClick={() => {
-                      setWatermarkImageFile(null);
-                      setWatermarkImageData(null);
-                      setWatermarkImagePreview(null);
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </div>
 
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <Label className="text-xs">Image Scale</Label>
-                    <span className="text-muted-foreground font-mono">{imageScale}%</span>
-                  </div>
-                  <Slider
-                    value={[imageScale]}
-                    min={5}
-                    max={150}
-                    step={5}
-                    onValueChange={([val]) => setImageScale(val)}
-                  />
+                  {!watermarkImagePreview ? (
+                    <label
+                      htmlFor={imageInputId}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        loadWatermarkImageFile(e.dataTransfer.files?.[0]);
+                      }}
+                      className="flex items-center justify-between gap-2.5 w-full min-h-[56px] rounded-xl border border-dashed border-border hover:border-primary/60 peer-focus-visible:border-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 ring-offset-background bg-surface-secondary/60 dark:bg-background/40 px-3 py-2.5 cursor-pointer transition-colors touch-manipulation select-none"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/15 text-primary dark:text-indigo-400">
+                          <Upload className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold text-foreground truncate">
+                            Choose logo image
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            PNG or JPG • No file selected
+                          </p>
+                        </div>
+                      </div>
+                      <span className="inline-flex items-center justify-center shrink-0 rounded-lg border border-primary/25 dark:border-primary/40 bg-primary/10 dark:bg-primary/20 px-2.5 py-1.5 text-xs font-medium text-primary dark:text-indigo-300">
+                        Browse
+                      </span>
+                    </label>
+                  ) : (
+                    <div className="space-y-2.5 peer-focus-visible:[&_label]:ring-2 peer-focus-visible:[&_label]:ring-ring">
+                      <div className="flex items-center gap-2.5 p-2.5 border border-border rounded-xl bg-surface-secondary/50 dark:bg-muted/30">
+                        <img
+                          src={watermarkImagePreview}
+                          alt="Watermark logo"
+                          className="h-10 w-10 object-contain rounded-md border bg-white p-0.5 shrink-0"
+                        />
+                        <div className="text-xs truncate flex-1 min-w-0">
+                          <div className="font-medium truncate text-xs text-foreground">
+                            {watermarkImageFile?.name || 'Selected Logo'}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            {formatFileSize(watermarkImageFile?.size || 0)}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <label
+                            htmlFor={imageInputId}
+                            className="inline-flex h-7 items-center justify-center rounded-md border border-border bg-background/80 hover:bg-accent px-2 text-[11px] font-medium cursor-pointer transition-colors touch-manipulation"
+                          >
+                            Replace
+                          </label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-[11px] text-destructive hover:text-destructive px-2 shrink-0"
+                            onClick={() => {
+                              setWatermarkImageFile(null);
+                              setWatermarkImageData(null);
+                              setWatermarkImagePreview(null);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <Label className="text-xs">Image Scale</Label>
+                          <span className="text-muted-foreground font-mono">{imageScale}%</span>
+                        </div>
+                        <Slider
+                          value={[imageScale]}
+                          min={5}
+                          max={150}
+                          step={5}
+                          onValueChange={([val]) => setImageScale(val)}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </TabsContent>
         </Tabs>
 

@@ -163,7 +163,10 @@ function normalizeLogoMode(value: unknown): LogoMode {
 }
 
 function normalizeLogoPosition(value: unknown): LogoPosition {
-  return value === 'center' ? 'center' : 'left';
+  if (value === 'center' || value === 'below-name') {
+    return value;
+  }
+  return 'left';
 }
 
 function normalizeLogoFormat(value: unknown): LogoImageFormat {
