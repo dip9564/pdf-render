@@ -85,8 +85,8 @@ const SAMPLE_DETAILS: FrontPageDetails = {
   mainTitle: 'Object Oriented Programming Lab',
   assignmentTitle: 'Lab Assignment I',
   name: 'Dip Mondal',
-  rollNo: '10200124063',
-  registrationNo: '241020110023',
+  rollNo: '10200100001',
+  registrationNo: '241020100001',
   department: 'Computer Science and Engineering',
   subject: 'Object Oriented Programming Lab',
   subjectCode: 'PCC-CS 593',
@@ -1310,7 +1310,7 @@ export default function FrontPageGenerator() {
                     id="fp-roll"
                     value={details.rollNo}
                     onChange={(e) => updateDetailField('rollNo', e.target.value)}
-                    placeholder="e.g. 10200124063"
+                    placeholder="e.g. 10200100001"
                   />
                 </div>
 
@@ -1322,7 +1322,7 @@ export default function FrontPageGenerator() {
                     id="fp-reg"
                     value={details.registrationNo}
                     onChange={(e) => updateDetailField('registrationNo', e.target.value)}
-                    placeholder="e.g. 241020110023"
+                    placeholder="e.g. 241020100001"
                   />
                 </div>
 

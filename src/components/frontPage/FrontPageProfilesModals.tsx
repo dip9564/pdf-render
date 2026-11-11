@@ -902,7 +902,7 @@ export function SavedProfilesDialog({
                             prev ? { ...prev, rollNo: e.target.value } : prev
                           )
                         }
-                        placeholder="e.g. 10200124063"
+                        placeholder="e.g. 10200100001"
                       />
                     </div>
                     <div className="space-y-1">
@@ -917,7 +917,7 @@ export function SavedProfilesDialog({
                             prev ? { ...prev, registrationNo: e.target.value } : prev
                           )
                         }
-                        placeholder="e.g. 241020110023"
+                        placeholder="e.g. 241020100001"
                       />
                     </div>
                     <div className="space-y-1">
