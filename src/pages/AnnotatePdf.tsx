@@ -969,18 +969,20 @@ export default function AnnotatePdf() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Type className="h-8 w-8 text-pink-500" />
-          Annotate PDF
-        </h1>
-        <p className="text-muted-foreground mt-1">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+            <Type className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Annotate PDF</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Add freehand drawings, highlights, text, geometric shapes, arrows, and signatures to any PDF page.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -1029,7 +1031,7 @@ export default function AnnotatePdf() {
                   onClick={() => setActiveTool('select')}
                   title="Select & move text, signatures, or shapes"
                 >
-                  <MousePointer className="h-3.5 w-3.5 mr-1 text-primary" />
+                  <MousePointer className="h-3.5 w-3.5 mr-1 text-current" />
                   Select / Move
                 </Button>
                 <Button
@@ -1163,7 +1165,7 @@ export default function AnnotatePdf() {
                 </Button>
                 <Button
                   size="sm"
-                  className="h-8 bg-pink-600 hover:bg-pink-700 text-white ml-2"
+                  className="h-8 ml-2"
                   onClick={handleExportAnnotatedPdf}
                   disabled={processing}
                 >
@@ -1304,7 +1306,7 @@ export default function AnnotatePdf() {
           >
             {loading ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-sm">Preparing high-resolution canvas...</p>
               </div>
             ) : pageImages[currentPage - 1] ? (
@@ -1542,13 +1544,13 @@ function SignatureVaultModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-lg text-xs font-medium mb-3">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-muted rounded-lg text-xs font-medium mb-3 border border-border/70">
           <button
             type="button"
             onClick={() => setTab('saved')}
             className={cn(
-              'py-1.5 rounded-md transition-all text-center',
-              tab === 'saved' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+              'py-1.5 rounded-md transition-colors text-center',
+              tab === 'saved' ? 'bg-card text-foreground shadow-xs font-semibold' : 'text-muted-foreground'
             )}
           >
             Vault ({savedSignatures.length})
@@ -1557,8 +1559,8 @@ function SignatureVaultModal({
             type="button"
             onClick={() => setTab('draw')}
             className={cn(
-              'py-1.5 rounded-md transition-all text-center',
-              tab === 'draw' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+              'py-1.5 rounded-md transition-colors text-center',
+              tab === 'draw' ? 'bg-card text-foreground shadow-xs font-semibold' : 'text-muted-foreground'
             )}
           >
             Draw New
@@ -1567,8 +1569,8 @@ function SignatureVaultModal({
             type="button"
             onClick={() => setTab('upload')}
             className={cn(
-              'py-1.5 rounded-md transition-all text-center',
-              tab === 'upload' ? 'bg-background shadow-xs font-semibold' : 'text-muted-foreground'
+              'py-1.5 rounded-md transition-colors text-center',
+              tab === 'upload' ? 'bg-card text-foreground shadow-xs font-semibold' : 'text-muted-foreground'
             )}
           >
             Upload
@@ -1611,7 +1613,7 @@ function SignatureVaultModal({
                       <Button
                         size="sm"
                         onClick={() => onInsertSignature(sig.dataUrl)}
-                        className="h-7 text-xs px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                        className="h-7 text-xs px-2.5"
                       >
                         Drop on PDF
                       </Button>
@@ -1685,14 +1687,14 @@ function SignatureVaultModal({
                   size="sm"
                   variant="outline"
                   onClick={clearPad}
-                  className="h-6 text-[10px] px-2 bg-white/90 shadow-xs"
+                  className="h-6 text-[10px] px-2 bg-white/95 text-slate-900 border-slate-300 hover:bg-slate-100 shadow-xs"
                 >
                   <Eraser className="h-3 w-3 mr-1" />
                   Clear Pad
                 </Button>
               </div>
               {!padHasStrokes && (
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-muted-foreground/40 text-xs">
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-slate-400 text-xs">
                   Sign with finger or stylus here
                 </div>
               )}
@@ -1702,7 +1704,7 @@ function SignatureVaultModal({
               type="button"
               onClick={handleSaveAndUseDrawn}
               disabled={!padHasStrokes}
-              className="w-full h-9 bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+              className="w-full h-9 text-xs"
             >
               <Check className="h-3.5 w-3.5 mr-1" />
               Save to Vault & Drop on PDF

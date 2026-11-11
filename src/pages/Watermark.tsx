@@ -423,7 +423,7 @@ export default function Watermark() {
           ) : (
             <div className="w-full flex items-center justify-center py-1.5 select-none">
               <div
-                className="relative rounded-md shadow-xl border border-slate-300 dark:border-slate-700/80 overflow-hidden bg-white transition-all duration-150 flex items-center justify-center"
+                className="relative rounded-md shadow-xl border border-border overflow-hidden bg-white transition-all duration-150 flex items-center justify-center"
                 style={{
                   aspectRatio: `${pageAspectRatio}`,
                   height: isMobile ? '290px' : '480px',
@@ -601,7 +601,7 @@ export default function Watermark() {
           <Button
             onClick={handleApplyWatermark}
             disabled={processing}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-9 text-xs font-medium mt-2"
+            className="w-full h-9 text-xs font-medium mt-2"
           >
             {processing ? (
               <>
@@ -713,7 +713,7 @@ export default function Watermark() {
           <Button
             onClick={handleApplyWatermark}
             disabled={processing}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-9 text-xs font-medium mt-2"
+            className="w-full h-9 text-xs font-medium mt-2"
           >
             {processing ? (
               <>
@@ -736,18 +736,20 @@ export default function Watermark() {
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-6xl">
       {/* Header */}
       <div className={cn('mb-6 sm:mb-8', file && 'hidden sm:block')}>
-        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2.5 sm:gap-3">
-          <Droplets className="h-7 w-7 sm:h-8 sm:w-8 text-indigo-500" />
-          Add Watermark
-        </h1>
-        <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+            <Droplets className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Add Watermark</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Apply text or image stamps to safeguard your document with customizable opacity, rotation, and positioning.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -762,7 +764,7 @@ export default function Watermark() {
           {/* Mobile Compact File Header */}
           <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-7 h-7 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-xs shrink-0">
                 PDF
               </div>
               <div className="min-w-0">
@@ -788,7 +790,7 @@ export default function Watermark() {
           <Card className="hidden sm:block">
             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
                   PDF
                 </div>
                 <div>
@@ -830,26 +832,26 @@ export default function Watermark() {
                 type="button"
                 onClick={() => setMobileTab('content')}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-colors touch-manipulation',
                   mobileTab === 'content'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    ? 'bg-card text-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Type className="h-3.5 w-3.5 text-indigo-500" />
+                <Type className="h-3.5 w-3.5 text-primary" />
                 <span>Watermark Content</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMobileTab('layout')}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-colors touch-manipulation',
                   mobileTab === 'layout'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    ? 'bg-card text-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Settings2 className="h-3.5 w-3.5 text-indigo-500" />
+                <Settings2 className="h-3.5 w-3.5 text-primary" />
                 <span>Position & Style</span>
               </button>
             </div>
@@ -883,7 +885,7 @@ export default function Watermark() {
                   <Button
                     onClick={handleApplyWatermark}
                     disabled={processing}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="w-full"
                     size="lg"
                   >
                     {processing ? (

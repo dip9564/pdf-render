@@ -294,7 +294,7 @@ export default function MergePdf() {
     <div className="container mx-auto max-w-4xl py-8 px-4">
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             <Combine className="h-5 w-5 text-primary" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Merge PDFs</h1>
@@ -515,7 +515,7 @@ export default function MergePdf() {
                                 {isSelected ? (
                                   <CheckSquare className="h-4 w-4 text-primary bg-white rounded-sm" />
                                 ) : (
-                                  <Square className="h-4 w-4 text-muted-foreground bg-white rounded-sm" />
+                                  <Square className="h-4 w-4 text-slate-500 bg-white rounded-sm" />
                                 )}
                               </div>
 

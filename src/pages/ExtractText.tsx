@@ -344,18 +344,20 @@ export default function ExtractText() {
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
       <div className="mb-4 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2.5">
-          <FileText className="h-7 w-7 text-sky-500" />
-          Extract Text & OCR
-        </h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+            <FileText className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Extract Text &amp; OCR</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Extract digital text or run optical character recognition (OCR) on scanned documents — 100% in your browser.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-6 sm:p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -370,7 +372,7 @@ export default function ExtractText() {
           {/* File details & Stats Banner */}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-md bg-sky-500/10 text-sky-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-8 h-8 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-xs shrink-0">
                 PDF
               </div>
               <div className="min-w-0">
@@ -428,7 +430,7 @@ export default function ExtractText() {
 
               <Button
                 size="sm"
-                className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 px-3 shrink-0 self-end sm:self-auto touch-manipulation"
+                className="text-xs h-8 px-3 shrink-0 self-end sm:self-auto touch-manipulation"
                 onClick={() => handleRunBatchOcr(true)}
               >
                 <Scan className="h-3.5 w-3.5 mr-1.5" />
@@ -439,21 +441,21 @@ export default function ExtractText() {
 
           {/* Batch OCR Progress Indicator */}
           {isBatchOcrRunning && batchProgress && (
-            <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/10 space-y-2">
+            <div className="p-3.5 rounded-xl border border-primary/30 bg-primary/10 space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   <span className="font-semibold">
                     Running OCR Scanner on Page {batchProgress.current} of {batchProgress.total}...
                   </span>
                 </div>
-                <span className="font-bold text-sky-600 dark:text-sky-400">
+                <span className="font-bold text-primary">
                   {batchProgress.percent}%
                 </span>
               </div>
               <div className="w-full bg-muted/60 h-2 rounded-full overflow-hidden">
                 <div
-                  className="bg-sky-500 h-full transition-all duration-300"
+                  className="bg-primary h-full transition-all duration-300"
                   style={{ width: `${batchProgress.percent}%` }}
                 />
               </div>
@@ -463,7 +465,7 @@ export default function ExtractText() {
           {loading ? (
             <Card>
               <CardContent className="py-16 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin text-sky-500" />
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-xs sm:text-sm">Reading and extracting text from PDF pages...</p>
               </CardContent>
             </Card>
@@ -502,7 +504,7 @@ export default function ExtractText() {
                     onClick={() => handleRunBatchOcr(false)}
                     variant="outline"
                     size="sm"
-                    className="h-8 text-xs px-2.5 text-sky-600 dark:text-sky-400 border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10"
+                    className="h-8 text-xs px-2.5 text-primary border-primary/30 bg-primary/5 hover:bg-primary/10"
                     disabled={isBatchOcrRunning}
                     title="Run OCR across all pages"
                   >
@@ -538,7 +540,7 @@ export default function ExtractText() {
                   <Button
                     onClick={handleDownloadMd}
                     size="sm"
-                    className="h-8 text-xs px-2.5 bg-sky-600 hover:bg-sky-700 text-white"
+                    className="h-8 text-xs px-2.5"
                   >
                     <FileCode className="h-3.5 w-3.5 mr-1" />
                     .MD
@@ -553,10 +555,10 @@ export default function ExtractText() {
                     type="button"
                     onClick={() => setViewMode('pages')}
                     className={cn(
-                      'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
+                      'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                       viewMode === 'pages'
-                        ? 'bg-background shadow-xs font-semibold'
-                        : 'text-muted-foreground'
+                        ? 'bg-card text-foreground shadow-xs font-semibold'
+                        : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
                     Page by Page ({filteredPages.length})
@@ -565,10 +567,10 @@ export default function ExtractText() {
                     type="button"
                     onClick={() => setViewMode('all')}
                     className={cn(
-                      'px-2.5 py-1 rounded-md text-xs font-medium transition-all',
+                      'px-2.5 py-1 rounded-md text-xs font-medium transition-colors',
                       viewMode === 'all'
-                        ? 'bg-background shadow-xs font-semibold'
-                        : 'text-muted-foreground'
+                        ? 'bg-card text-foreground shadow-xs font-semibold'
+                        : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
                     Combined Document
@@ -625,7 +627,7 @@ export default function ExtractText() {
                               size="sm"
                               onClick={() => handleRunOcrSinglePage(pageIdx)}
                               disabled={p.isOcrRunning || isBatchOcrRunning}
-                              className="h-6 text-[11px] px-2 text-sky-600 dark:text-sky-400 border-sky-500/30 hover:bg-sky-500/10"
+                              className="h-6 text-[11px] px-2 text-primary border-primary/30 hover:bg-primary/10"
                             >
                               {p.isOcrRunning ? (
                                 <>
@@ -664,7 +666,7 @@ export default function ExtractText() {
                         <CardContent className="p-3.5">
                           {p.isOcrRunning ? (
                             <div className="py-8 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                              <Loader2 className="h-6 w-6 animate-spin text-sky-500" />
+                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
                               <p className="text-xs">
                                 Extracting text from image using Tesseract OCR...
                               </p>

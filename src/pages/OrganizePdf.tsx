@@ -316,19 +316,21 @@ export default function OrganizePdf() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <LayoutGrid className="h-8 w-8 text-cyan-500" />
-          PDF Page Organizer
-        </h1>
-        <p className="text-muted-foreground mt-1">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+            <LayoutGrid className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">PDF Page Organizer</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Visually reorder pages, rotate, duplicate, insert blank sheets, and delete unwanted pages.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -343,7 +345,7 @@ export default function OrganizePdf() {
           {/* Mobile Compact File Header */}
           <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-7 h-7 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-xs shrink-0">
                 PDF
               </div>
               <div className="min-w-0">
@@ -370,7 +372,7 @@ export default function OrganizePdf() {
           <Card className="hidden sm:block">
             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-cyan-500/10 text-cyan-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
                   PDF
                 </div>
                 <div>
@@ -384,7 +386,7 @@ export default function OrganizePdf() {
                       {pages.length} {pages.length === 1 ? 'Page' : 'Pages'}
                     </Badge>
                     {selectedPageIds.size > 0 && (
-                      <Badge variant="outline" className="text-xs text-cyan-600 border-cyan-500">
+                      <Badge variant="outline" className="text-xs text-primary border-primary/40">
                         {selectedPageIds.size} selected
                       </Badge>
                     )}
@@ -415,7 +417,6 @@ export default function OrganizePdf() {
                 <Button
                   onClick={handleSaveModified}
                   disabled={processing}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white"
                 >
                   {processing ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
@@ -468,7 +469,7 @@ export default function OrganizePdf() {
             <CardContent>
               {loading ? (
                 <div className="py-16 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p className="text-sm">Generating high-fidelity page previews...</p>
                 </div>
               ) : (
@@ -483,12 +484,12 @@ export default function OrganizePdf() {
                         onDragStart={(e) => handleDragStart(e, index)}
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDrop={(e) => handleDrop(e, index)}
-                        className={`group relative rounded-lg border-2 p-2 transition-all bg-card flex flex-col justify-between ${
+                        className={`group relative rounded-xl border-2 p-2 transition-[border-color,box-shadow,opacity] bg-card flex flex-col justify-between ${
                           draggedIndex === index
-                            ? 'opacity-40 border-cyan-400'
+                            ? 'opacity-40 border-primary/60'
                             : isSelected
-                            ? 'border-cyan-500 ring-2 ring-cyan-500/20 shadow'
-                            : 'border-border hover:border-cyan-300'
+                            ? 'border-primary ring-2 ring-primary/20 shadow'
+                            : 'border-border hover:border-primary/40'
                         }`}
                       >
                         {/* Drag Handle, Mobile Reorder & Page Indicator */}
@@ -527,7 +528,7 @@ export default function OrganizePdf() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => toggleSelect(item.id)}
-                            className="rounded border-input text-cyan-600 focus:ring-cyan-500 cursor-pointer h-4 w-4 touch-manipulation"
+                            className="rounded border-input accent-primary cursor-pointer h-4 w-4 touch-manipulation"
                           />
                         </div>
 
@@ -567,7 +568,7 @@ export default function OrganizePdf() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-cyan-600"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
                             title="Rotate 90° Clockwise"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -579,7 +580,7 @@ export default function OrganizePdf() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-cyan-600"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary"
                             title="Duplicate Page"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -611,11 +612,11 @@ export default function OrganizePdf() {
 
           {/* Mobile Floating Action Bar */}
           <div className="sm:hidden fixed bottom-4 left-3 right-3 z-40">
-            <div className="bg-card/95 backdrop-blur-md border border-cyan-500/40 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
+            <div className="bg-card/95 backdrop-blur-md border border-primary/35 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
               <div className="text-xs font-semibold pl-1">
                 <span>{pages.length} pages</span>
                 {selectedPageIds.size > 0 && (
-                  <span className="text-cyan-500 ml-1">({selectedPageIds.size} sel)</span>
+                  <span className="text-primary ml-1">({selectedPageIds.size} sel)</span>
                 )}
               </div>
               <div className="flex items-center gap-1.5">
@@ -624,7 +625,7 @@ export default function OrganizePdf() {
                     onClick={handleExtractSelected}
                     disabled={processing}
                     size="sm"
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs h-8 px-3 shadow-xs"
+                    className="text-xs h-8 px-3 shadow-xs"
                   >
                     {processing ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
@@ -638,7 +639,7 @@ export default function OrganizePdf() {
                     onClick={handleSaveModified}
                     disabled={processing}
                     size="sm"
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs h-8 px-3 shadow-xs"
+                    className="text-xs h-8 px-3 shadow-xs"
                   >
                     {processing ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />

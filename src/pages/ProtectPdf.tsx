@@ -163,11 +163,13 @@ export default function ProtectPdf() {
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-4xl">
       <div className="mb-4 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2.5">
-          <ShieldCheck className="h-7 w-7 text-indigo-500" />
-          PDF Security & Passwords
-        </h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">PDF Security &amp; Passwords</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Add military-grade AES encryption or permanently remove password restrictions from your documents.
         </p>
       </div>
@@ -187,8 +189,8 @@ export default function ProtectPdf() {
         {/* PROTECT TAB */}
         <TabsContent value="protect" className="space-y-4">
           {!protectFile ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 sm:p-8">
+            <Card>
+              <CardContent className="p-5 sm:p-7">
                 <FileUploader
                   accept=".pdf,application/pdf"
                   multiple={false}
@@ -203,7 +205,7 @@ export default function ProtectPdf() {
               {/* File header */}
               <div className="flex items-center justify-between pb-2 border-b">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
                     PDF
                   </div>
                   <div className="min-w-0">
@@ -329,7 +331,7 @@ export default function ProtectPdf() {
                   <Button
                     onClick={handleProtectPdf}
                     disabled={protecting || !protectPassword || protectPassword !== confirmPassword}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="w-full"
                   >
                     {protecting ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -347,8 +349,8 @@ export default function ProtectPdf() {
         {/* UNLOCK TAB */}
         <TabsContent value="unlock" className="space-y-4">
           {!unlockFile ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 sm:p-8">
+            <Card>
+              <CardContent className="p-5 sm:p-7">
                 <FileUploader
                   accept=".pdf,application/pdf"
                   multiple={false}
@@ -363,7 +365,7 @@ export default function ProtectPdf() {
               {/* File header */}
               <div className="flex items-center justify-between pb-2 border-b">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                  <div className="w-7 h-7 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs shrink-0">
                     PDF
                   </div>
                   <div className="min-w-0">
@@ -422,7 +424,7 @@ export default function ProtectPdf() {
                   <Button
                     onClick={handleUnlockPdf}
                     disabled={unlocking || !unlockPassword}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                    className="w-full"
                   >
                     {unlocking ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />

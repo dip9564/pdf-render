@@ -331,7 +331,7 @@ export default function PageNumbers() {
     <Card className={cn(isMobile ? 'shadow-xs overflow-hidden' : 'sticky top-20')}>
       <CardHeader className={cn(isMobile ? 'py-2 px-3 border-b flex flex-row items-center justify-between space-y-0' : 'pb-3')}>
         <div className="flex items-center gap-1.5 min-w-0">
-          <Eye className="h-4 w-4 text-emerald-500 shrink-0" />
+          <Eye className="h-4 w-4 text-primary shrink-0" />
           <CardTitle className={cn(isMobile ? 'text-xs font-semibold' : 'text-base')}>
             Live Page {previewPageNumber} Preview
           </CardTitle>
@@ -363,13 +363,13 @@ export default function PageNumbers() {
       <CardContent className={cn('flex flex-col items-center justify-center', isMobile ? 'p-2.5 space-y-2' : 'p-4 space-y-3')}>
         {loading ? (
           <div className="py-14 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <p className="text-xs">Rendering preview...</p>
           </div>
         ) : (
           <div className="w-full flex items-center justify-center py-1 select-none">
             <div
-              className="relative rounded-md shadow-xl border border-slate-300 dark:border-slate-700/80 overflow-hidden bg-white transition-all duration-150 flex items-center justify-center"
+              className="relative rounded-md shadow-xl border border-border overflow-hidden bg-white transition-all duration-150 flex items-center justify-center"
               style={{
                 aspectRatio: `${pageAspectRatio}`,
                 height: isMobile ? '280px' : '480px',
@@ -415,7 +415,7 @@ export default function PageNumbers() {
                 className={cn(
                   'flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all touch-manipulation',
                   isSelected
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 font-semibold ring-1 ring-emerald-500/30'
+                    ? 'border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30'
                     : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
                 )}
               >
@@ -610,18 +610,20 @@ export default function PageNumbers() {
   return (
     <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-5xl">
       <div className="mb-4 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2.5">
-          <Hash className="h-7 w-7 text-emerald-500" />
-          Add Page Numbers
-        </h1>
-        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+            <Hash className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Add Page Numbers</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Insert customizable page numbers, headers, and footers into your PDF documents.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-6 sm:p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -636,7 +638,7 @@ export default function PageNumbers() {
           {/* File details banner */}
           <div className="flex items-center justify-between pb-2 border-b">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-7 h-7 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
                 PDF
               </div>
               <div className="min-w-0">
@@ -668,26 +670,26 @@ export default function PageNumbers() {
                 type="button"
                 onClick={() => setMobileTab('format')}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all touch-manipulation',
+                  'flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-colors touch-manipulation',
                   mobileTab === 'format'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    ? 'bg-card text-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Hash className="h-3.5 w-3.5 text-emerald-500" />
+                <Hash className="h-3.5 w-3.5 text-primary" />
                 Position & Format
               </button>
               <button
                 type="button"
                 onClick={() => setMobileTab('style')}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-all touch-manipulation',
+                  'flex items-center justify-center gap-1.5 py-1.5 rounded-lg transition-colors touch-manipulation',
                   mobileTab === 'style'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    ? 'bg-card text-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Sliders className="h-3.5 w-3.5 text-emerald-500" />
+                <Sliders className="h-3.5 w-3.5 text-primary" />
                 Style & Font
               </button>
             </div>
@@ -701,7 +703,7 @@ export default function PageNumbers() {
 
             {/* Floating Mobile Bottom Action Bar */}
             <div className="fixed bottom-4 left-3 right-3 z-40">
-              <div className="bg-card/95 backdrop-blur-md border border-emerald-500/40 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
+              <div className="bg-card/95 backdrop-blur-md border border-primary/35 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
                 <div className="text-xs font-semibold pl-1">
                   <span>{pageCount} Pages Numbered</span>
                 </div>
@@ -709,7 +711,7 @@ export default function PageNumbers() {
                   onClick={handleAddPageNumbers}
                   disabled={processing}
                   size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 shadow-xs"
+                  className="text-xs h-8 px-3 shadow-xs"
                 >
                   {processing ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
@@ -750,7 +752,7 @@ export default function PageNumbers() {
                     <Button
                       onClick={handleAddPageNumbers}
                       disabled={processing}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                      className="w-full"
                     >
                       {processing ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />

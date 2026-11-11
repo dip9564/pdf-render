@@ -150,19 +150,21 @@ export default function MetadataEditor() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <FileText className="h-8 w-8 text-slate-600" />
-          PDF Metadata Editor
-        </h1>
-        <p className="text-muted-foreground mt-1">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+            <FileText className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">PDF Metadata Editor</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           View and edit document properties such as Title, Author, Subject, Keywords, and inspect creation info.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -178,7 +180,7 @@ export default function MetadataEditor() {
           <Card>
             <CardContent className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-slate-500/10 text-slate-700 flex items-center justify-center font-bold shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold shrink-0">
                   PDF
                 </div>
                 <div className="min-w-0 flex-1">

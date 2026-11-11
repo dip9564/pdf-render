@@ -783,7 +783,7 @@ export default function FrontPageGenerator() {
       {/* Page Header */}
       <div className="mb-5 sm:mb-8">
         <div className="flex flex-wrap items-start sm:items-center gap-2.5 sm:gap-3 mb-2">
-          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
             <GraduationCap className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -812,7 +812,7 @@ export default function FrontPageGenerator() {
               <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
                 <div className="min-w-0 flex-1">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-amber-500 shrink-0" />
+                    <ImageIcon className="h-4 w-4 text-primary shrink-0" />
                     <span className="leading-snug">1. College Logo &amp; Header</span>
                   </CardTitle>
                   <CardDescription className="text-xs mt-1">
@@ -1141,7 +1141,7 @@ export default function FrontPageGenerator() {
                 {logoMode !== 'none' && (
                   <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5 min-w-0">
                     <Label className="text-xs font-medium">Logo Position</Label>
-                    <div className="grid grid-cols-2 sm:inline-flex w-full sm:w-auto rounded-lg border bg-muted/40 p-0.5 text-xs">
+                    <div className="grid grid-cols-2 sm:inline-flex w-full sm:w-auto rounded-lg border border-border/60 bg-muted/60 p-0.5 text-xs">
                       <button
                         type="button"
                         onClick={() => {
@@ -1151,7 +1151,7 @@ export default function FrontPageGenerator() {
                         className={cn(
                           'px-2.5 py-1.5 sm:py-1 rounded-md transition-colors text-center whitespace-normal leading-tight',
                           logoPosition === 'left'
-                            ? 'bg-background text-foreground font-semibold shadow-xs'
+                            ? 'bg-card text-foreground font-semibold shadow-xs'
                             : 'text-muted-foreground hover:text-foreground'
                         )}
                       >
@@ -1166,7 +1166,7 @@ export default function FrontPageGenerator() {
                         className={cn(
                           'px-2.5 py-1.5 sm:py-1 rounded-md transition-colors text-center whitespace-normal leading-tight',
                           logoPosition === 'center'
-                            ? 'bg-background text-foreground font-semibold shadow-xs'
+                            ? 'bg-card text-foreground font-semibold shadow-xs'
                             : 'text-muted-foreground hover:text-foreground'
                         )}
                       >
@@ -1197,7 +1197,7 @@ export default function FrontPageGenerator() {
                     onClick={handleLoadSample}
                     className="h-auto min-h-7 py-1 text-xs px-2 sm:px-2.5 gap-1 whitespace-normal text-center"
                   >
-                    <Sparkles className="h-3 w-3 text-amber-500 shrink-0" />
+                    <Sparkles className="h-3 w-3 text-teal shrink-0" />
                     <span>Fill Sample</span>
                   </Button>
                   <Button
@@ -1217,7 +1217,7 @@ export default function FrontPageGenerator() {
                     onClick={openSavedProfilesModal}
                     className="h-auto min-h-7 py-1 text-xs px-2 sm:px-2.5 gap-1 whitespace-normal text-center"
                   >
-                    <FolderOpen className="h-3 w-3 text-amber-500 shrink-0" />
+                    <FolderOpen className="h-3 w-3 text-primary shrink-0" />
                     <span>Saved Profiles</span>
                     {savedProfiles.length > 0 && (
                       <span className="ml-0.5 rounded-full bg-primary/15 px-1.5 py-0 text-[10px] font-semibold text-primary shrink-0">
@@ -1499,7 +1499,7 @@ export default function FrontPageGenerator() {
               </div>
             </CardHeader>
 
-            <CardContent className="p-3 sm:p-5 bg-slate-200/70 dark:bg-slate-900/70">
+            <CardContent className="p-3 sm:p-5 bg-surface-secondary dark:bg-background/70">
               {previewError && (
                 <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -1511,7 +1511,7 @@ export default function FrontPageGenerator() {
               )}
 
               {!hasGeneratedPreview || !previewImageUrl ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 bg-background/80 p-5 sm:p-12 text-center min-h-[280px] sm:min-h-[380px]">
+                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card/90 p-5 sm:p-12 text-center min-h-[280px] sm:min-h-[380px]">
                   {generatingPreview ? (
                     <>
                       <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
@@ -1685,10 +1685,10 @@ export default function FrontPageGenerator() {
                         }}
                         onClick={() => existingPdfInputRef.current?.click()}
                         className={cn(
-                          'flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 sm:p-6 text-center cursor-pointer transition-all bg-background/60',
+                          'flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 sm:p-6 text-center cursor-pointer transition-colors bg-card',
                           isDraggingExistingPdf
                             ? 'border-primary bg-primary/5'
-                            : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/40'
+                            : 'border-border hover:border-primary/50 hover:bg-primary/[0.03]'
                         )}
                       >
                         {validatingExistingPdf ? (
@@ -1714,7 +1714,7 @@ export default function FrontPageGenerator() {
                         <div className="rounded-lg border bg-card p-2.5 sm:p-3 space-y-2.5 min-w-0">
                           <div className="flex flex-wrap items-start justify-between gap-2 min-w-0">
                             <div className="flex items-start gap-2.5 min-w-0 flex-1 basis-[165px]">
-                              <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                              <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                                 <CheckCircle2 className="h-5 w-5" />
                               </div>
                               <div className="min-w-0 flex-1">

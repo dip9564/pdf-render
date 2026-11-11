@@ -428,8 +428,8 @@ export default function ImageEditor() {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-purple-500/10 mb-4">
-            <Paintbrush className="h-8 w-8 text-purple-500" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 mb-4">
+            <Paintbrush className="h-8 w-8" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Image Editor</h1>
           <p className="text-muted-foreground mt-2 max-w-lg mx-auto">
@@ -577,7 +577,7 @@ export default function ImageEditor() {
           size="sm"
           onClick={exportImage}
           disabled={isExporting}
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white h-9 text-xs font-medium mt-2"
+          className="w-full h-9 text-xs font-medium mt-2"
         >
           {isExporting ? (
             <>
@@ -647,7 +647,7 @@ export default function ImageEditor() {
           size="sm"
           onClick={exportImage}
           disabled={isExporting}
-          className="w-full bg-purple-600 hover:bg-purple-700 text-white h-9 text-xs font-medium mt-1"
+          className="w-full h-9 text-xs font-medium mt-1"
         >
           {isExporting ? (
             <>
@@ -670,7 +670,7 @@ export default function ImageEditor() {
       {/* Mobile Compact Header */}
       <div className="sm:hidden flex items-center justify-between pb-2 mb-2 border-b">
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 shrink-0">
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400 shrink-0">
             <Paintbrush className="h-3.5 w-3.5" />
           </div>
           <span className="text-xs font-bold truncate max-w-[130px]">{originalFileName}</span>
@@ -704,7 +704,7 @@ export default function ImageEditor() {
             size="sm"
             onClick={exportImage}
             disabled={isExporting}
-            className="h-6 text-[11px] px-2 bg-purple-600 hover:bg-purple-700 text-white"
+            className="h-6 text-[11px] px-2"
           >
             <Download className="h-3 w-3 mr-0.5" />
             Save
@@ -715,8 +715,8 @@ export default function ImageEditor() {
       {/* Desktop Header */}
       <div className="hidden sm:flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-purple-500/10">
-            <Paintbrush className="h-5 w-5 text-purple-500" />
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400">
+            <Paintbrush className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-xl font-bold">Image Editor</h1>
@@ -1009,26 +1009,26 @@ export default function ImageEditor() {
               type="button"
               onClick={() => setMobileTab('adjust')}
               className={cn(
-                'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-colors touch-manipulation',
                 mobileTab === 'adjust'
-                  ? 'bg-background text-foreground font-semibold shadow-xs'
+                  ? 'bg-card text-foreground font-semibold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <SlidersHorizontal className="h-3.5 w-3.5 text-purple-500" />
+              <SlidersHorizontal className="h-3.5 w-3.5 text-primary" />
               <span>Adjust & Filter</span>
             </button>
             <button
               type="button"
               onClick={() => setMobileTab('transform')}
               className={cn(
-                'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-colors touch-manipulation',
                 mobileTab === 'transform'
-                  ? 'bg-background text-foreground font-semibold shadow-xs'
+                  ? 'bg-card text-foreground font-semibold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Settings2 className="h-3.5 w-3.5 text-purple-500" />
+              <Settings2 className="h-3.5 w-3.5 text-primary" />
               <span>Transform & Info</span>
             </button>
           </div>

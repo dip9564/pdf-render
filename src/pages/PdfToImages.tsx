@@ -204,19 +204,21 @@ export default function PdfToImages() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <ImageDown className="h-8 w-8 text-teal-500" />
-          PDF to Images
-        </h1>
-        <p className="text-muted-foreground mt-1">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 shrink-0">
+            <ImageDown className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">PDF to Images</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Extract high-resolution images from your PDF pages in PNG or JPG format.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -231,7 +233,7 @@ export default function PdfToImages() {
           {/* Mobile Compact File Header */}
           <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-7 h-7 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold text-xs shrink-0">
                 PDF
               </div>
               <div className="min-w-0">
@@ -257,7 +259,7 @@ export default function PdfToImages() {
           <Card className="hidden sm:block">
             <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-lg bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center font-bold">
                   PDF
                 </div>
                 <div>
@@ -347,7 +349,7 @@ export default function PdfToImages() {
                 <Button
                   onClick={handleConvert}
                   disabled={converting || selectedCount === 0}
-                  className="w-full sm:w-auto bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm"
+                  className="w-full sm:w-auto text-xs sm:text-sm"
                 >
                   {converting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
@@ -361,7 +363,7 @@ export default function PdfToImages() {
               {/* Thumbnails grid */}
               {loading ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <p className="text-sm">Preparing page thumbnails...</p>
                 </div>
               ) : (
@@ -374,10 +376,10 @@ export default function PdfToImages() {
                       <div
                         key={idx}
                         onClick={() => togglePageSelection(idx)}
-                        className={`group relative rounded-lg border-2 p-1.5 cursor-pointer transition-all bg-card ${
+                        className={`group relative rounded-xl border-2 p-1.5 cursor-pointer transition-[border-color,box-shadow] bg-card ${
                           isSelected
-                            ? 'border-teal-500 ring-2 ring-teal-500/20 shadow-sm'
-                            : 'border-border hover:border-teal-300'
+                            ? 'border-primary ring-2 ring-primary/20 shadow-sm'
+                            : 'border-border hover:border-primary/40'
                         }`}
                       >
                         <div className="aspect-[3/4] bg-muted/40 rounded flex items-center justify-center overflow-hidden relative">
@@ -394,8 +396,8 @@ export default function PdfToImages() {
                           <div
                             className={`absolute top-1.5 left-1.5 rounded-full p-0.5 transition-colors ${
                               isSelected
-                                ? 'bg-teal-600 text-white'
-                                : 'bg-black/40 text-white/70 group-hover:bg-black/60'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-black/45 text-white/80 group-hover:bg-black/65'
                             }`}
                           >
                             {isSelected ? (
@@ -418,7 +420,7 @@ export default function PdfToImages() {
 
           {/* Converted Images Gallery */}
           {convertedImages.length > 0 && (
-            <Card className="border-teal-500/30">
+            <Card className="border-primary/30">
               <CardHeader className="pb-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -427,10 +429,7 @@ export default function PdfToImages() {
                       Download individual images or get all of them packed in a convenient ZIP file.
                     </CardDescription>
                   </div>
-                  <Button
-                    onClick={downloadAllZip}
-                    className="bg-teal-600 hover:bg-teal-700 text-white"
-                  >
+                  <Button onClick={downloadAllZip}>
                     <FileArchive className="h-4 w-4 mr-2" />
                     Download All as ZIP
                   </Button>
@@ -477,7 +476,7 @@ export default function PdfToImages() {
           {/* Mobile Floating Action Bar for Quick Convert */}
           {selectedCount > 0 && convertedImages.length === 0 && (
             <div className="sm:hidden fixed bottom-4 left-3 right-3 z-40">
-              <div className="bg-card/95 backdrop-blur-md border border-teal-500/40 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
+              <div className="bg-card/95 backdrop-blur-md border border-primary/35 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
                 <div className="text-xs font-semibold pl-1">
                   <span>{selectedCount} of {pageCount} pages</span>
                 </div>
@@ -485,7 +484,7 @@ export default function PdfToImages() {
                   onClick={handleConvert}
                   disabled={converting}
                   size="sm"
-                  className="bg-teal-600 hover:bg-teal-700 text-white text-xs h-8 px-3 shadow-xs"
+                  className="text-xs h-8 px-3 shadow-xs"
                 >
                   {converting ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />

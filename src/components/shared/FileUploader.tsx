@@ -104,10 +104,10 @@ export function FileUploader({
     <div className={cn('space-y-4', className)}>
       <div
         className={cn(
-          'relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-5 sm:p-8 transition-all cursor-pointer text-center touch-manipulation active:scale-[0.99]',
+          'relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 sm:p-9 transition-[border-color,background-color,box-shadow,transform] cursor-pointer text-center touch-manipulation active:scale-[0.99] bg-card shadow-card',
           isDragging
-            ? 'border-primary bg-primary/5'
-            : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50 active:bg-muted/60'
+            ? 'border-primary bg-primary/[0.06] ring-2 ring-primary/15'
+            : 'border-border hover:border-primary/50 hover:bg-surface-secondary/90 dark:hover:bg-surface-secondary/50'
         )}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -123,10 +123,19 @@ export function FileUploader({
           onChange={handleFileChange}
           className="hidden"
         />
-        <Upload className={cn('h-8 w-8 sm:h-10 sm:w-10 mb-3', isDragging ? 'text-primary' : 'text-muted-foreground')} />
+        <div
+          className={cn(
+            'mb-3.5 flex h-12 w-12 items-center justify-center rounded-xl transition-colors',
+            isDragging
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-primary/10 text-primary'
+          )}
+        >
+          <Upload className="h-5 w-5 sm:h-6 sm:w-6" />
+        </div>
         <p className="text-sm sm:text-base font-semibold text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground mt-1 max-w-sm">{description}</p>
-        <p className="text-[11px] text-muted-foreground mt-1">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-sm">{description}</p>
+        <p className="text-[11px] text-subtle mt-2 inline-flex items-center gap-1.5 rounded-full bg-surface-secondary dark:bg-surface-secondary px-2.5 py-0.5 border border-border/70">
           Max {formatFileSize(maxSize)} per file
           {multiple && ` · Up to ${maxFiles} files`}
         </p>
@@ -141,10 +150,12 @@ export function FileUploader({
             {files.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}
-                className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 text-xs sm:text-sm"
+                className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5 text-xs sm:text-sm shadow-sm"
               >
-                <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="truncate flex-1 font-medium">{file.name}</span>
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                  <FileIcon className="h-3.5 w-3.5" />
+                </div>
+                <span className="truncate flex-1 font-medium text-foreground">{file.name}</span>
                 <span className="text-xs text-muted-foreground shrink-0">
                   {formatFileSize(file.size)}
                 </span>

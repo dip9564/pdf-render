@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { lazy, Suspense, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const ImageToPdf = lazy(() => import('@/pages/ImageToPdf'));
@@ -21,8 +22,16 @@ const FrontPageGenerator = lazy(() => import('@/pages/FrontPageGenerator'));
 
 function PageLoading() {
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Spinner size="lg" />
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center px-4"
+    >
+      <BrandLogo variant="icon" size="lg" />
+      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Spinner size="sm" className="text-primary" />
+        <span>Loading PDF Render...</span>
+      </div>
     </div>
   );
 }

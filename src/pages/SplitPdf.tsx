@@ -268,19 +268,21 @@ export default function SplitPdf() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Scissors className="h-8 w-8 text-orange-500" />
-          Split PDF
-        </h1>
-        <p className="text-muted-foreground mt-1">
+      <div className="mb-6 sm:mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 shrink-0">
+            <Scissors className="h-5 w-5" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Split PDF</h1>
+        </div>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           Separate PDF pages into individual documents, extract specific pages, or split by custom ranges.
         </p>
       </div>
 
       {!file ? (
-        <Card className="border-dashed">
-          <CardContent className="p-8">
+        <Card>
+          <CardContent className="p-5 sm:p-7">
             <FileUploader
               accept=".pdf,application/pdf"
               multiple={false}
@@ -295,7 +297,7 @@ export default function SplitPdf() {
           {/* Mobile Compact File Header */}
           <div className="sm:hidden flex items-center justify-between pb-2 mb-1 border-b">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0">
+              <div className="w-7 h-7 rounded-md bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-xs shrink-0">
                 PDF
               </div>
               <div className="min-w-0">
@@ -393,7 +395,7 @@ export default function SplitPdf() {
                       <Button
                         onClick={handleExtractSelected}
                         disabled={selectedCount === 0 || processing}
-                        className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm h-8 px-3"
+                        className="w-full sm:w-auto text-xs sm:text-sm h-8 px-3"
                       >
                         {processing ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
@@ -408,7 +410,7 @@ export default function SplitPdf() {
                 <CardContent>
                   {loading ? (
                     <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
                       <p className="text-sm">Rendering page previews...</p>
                     </div>
                   ) : (
@@ -421,10 +423,10 @@ export default function SplitPdf() {
                           <div
                             key={idx}
                             onClick={() => togglePageSelection(idx)}
-                            className={`group relative rounded-lg border-2 p-1.5 cursor-pointer transition-all bg-card ${
+                            className={`group relative rounded-xl border-2 p-1.5 cursor-pointer transition-[border-color,box-shadow] bg-card ${
                               isSelected
-                                ? 'border-orange-500 ring-2 ring-orange-500/20 shadow-md'
-                                : 'border-border hover:border-orange-300'
+                                ? 'border-primary ring-2 ring-primary/20 shadow-md'
+                                : 'border-border hover:border-primary/40'
                             }`}
                           >
                             <div className="aspect-[3/4] bg-muted/40 rounded flex items-center justify-center overflow-hidden relative">
@@ -441,8 +443,8 @@ export default function SplitPdf() {
                               <div
                                 className={`absolute top-1.5 left-1.5 rounded-full p-0.5 transition-colors ${
                                   isSelected
-                                    ? 'bg-orange-500 text-white'
-                                    : 'bg-black/40 text-white/70 group-hover:bg-black/60'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-black/45 text-white/80 group-hover:bg-black/65'
                                 }`}
                               >
                                 {isSelected ? (
@@ -474,8 +476,8 @@ export default function SplitPdf() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="rounded-lg bg-orange-500/5 border border-orange-500/20 p-4 flex items-center gap-4">
-                    <FileArchive className="h-10 w-10 text-orange-500 shrink-0" />
+                  <div className="rounded-xl bg-primary/[0.06] border border-primary/20 p-4 flex items-center gap-4">
+                    <FileArchive className="h-10 w-10 text-primary shrink-0" />
                     <div>
                       <h4 className="font-medium text-sm">Download as ZIP archive</h4>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -488,7 +490,7 @@ export default function SplitPdf() {
                     onClick={handleSplitAll}
                     disabled={processing}
                     size="lg"
-                    className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 text-white"
+                    className="w-full sm:w-auto"
                   >
                     {processing ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -528,7 +530,6 @@ export default function SplitPdf() {
                     <Button
                       onClick={handleSplitByRanges}
                       disabled={processing || !rangeInput.trim()}
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
                     >
                       {processing ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -546,7 +547,7 @@ export default function SplitPdf() {
           {/* Mobile Floating Action Bar for Quick Extract */}
           {activeTab === 'extract' && selectedCount > 0 && (
             <div className="sm:hidden fixed bottom-4 left-3 right-3 z-40">
-              <div className="bg-card/95 backdrop-blur-md border border-orange-500/40 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
+              <div className="bg-card/95 backdrop-blur-md border border-primary/35 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
                 <div className="text-xs font-semibold pl-1">
                   <span>{selectedCount} of {pageCount} selected</span>
                 </div>
@@ -554,7 +555,7 @@ export default function SplitPdf() {
                   onClick={handleExtractSelected}
                   disabled={processing}
                   size="sm"
-                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs h-8 px-3 shadow-xs"
+                  className="text-xs h-8 px-3 shadow-xs"
                 >
                   {processing ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />

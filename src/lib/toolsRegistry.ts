@@ -2,34 +2,39 @@ import {
   AlignLeft,
   Droplets,
   FileImage,
+  FilePlus2,
   FileSpreadsheet,
   FileText,
   FileType,
   GraduationCap,
   Hash,
   ImageDown,
+  Layers,
   LayoutGrid,
   LucideIcon,
   Merge,
   Paintbrush,
+  PenLine,
   Scissors,
   ShieldCheck,
   Type,
+  Wrench,
 } from 'lucide-react';
 
 export type ToolCategoryId =
   | 'all'
   | 'create-convert'
   | 'organize'
-  | 'edit'
-  | 'security'
-  | 'intelligence';
+  | 'edit-annotate'
+  | 'protect-sign'
+  | 'other';
 
 export type AssignableToolCategoryId = Exclude<ToolCategoryId, 'all'>;
 
 export interface ToolCategoryDefinition {
   id: ToolCategoryId;
   label: string;
+  icon: LucideIcon;
 }
 
 export interface PdfToolDefinition {
@@ -46,21 +51,29 @@ export interface PdfToolDefinition {
 }
 
 export const PDF_TOOL_CATEGORIES: readonly ToolCategoryDefinition[] = [
-  { id: 'all', label: 'All Tools' },
-  { id: 'create-convert', label: 'Create & Convert' },
-  { id: 'organize', label: 'Organize PDF' },
-  { id: 'edit', label: 'Edit PDF' },
-  { id: 'security', label: 'Security' },
-  { id: 'intelligence', label: 'PDF Intelligence' },
+  { id: 'all', label: 'All Tools', icon: LayoutGrid },
+  { id: 'create-convert', label: 'Create & Convert', icon: FilePlus2 },
+  { id: 'organize', label: 'Organize PDF', icon: Layers },
+  { id: 'edit-annotate', label: 'Edit & Annotate', icon: PenLine },
+  { id: 'protect-sign', label: 'Protect & Sign', icon: ShieldCheck },
+  { id: 'other', label: 'Other Tools', icon: Wrench },
 ] as const;
 
 const CATEGORY_LABEL_MAP: Record<AssignableToolCategoryId, string> = {
   'create-convert': 'Create & Convert',
   organize: 'Organize PDF',
-  edit: 'Edit PDF',
-  security: 'Security',
-  intelligence: 'PDF Intelligence',
+  'edit-annotate': 'Edit & Annotate',
+  'protect-sign': 'Protect & Sign',
+  other: 'Other Tools',
 };
+
+// Restrained category-level icon tokens (Indigo, Teal, Blue, Green, Orange)
+const ICON_INDIGO = 'bg-indigo-500/10 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400';
+const ICON_TEAL = 'bg-teal-500/10 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400';
+const ICON_BLUE = 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400';
+const ICON_GREEN = 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400';
+const ICON_ORANGE = 'bg-orange-500/10 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400';
+const UNIFIED_CARD_HOVER = 'hover:border-indigo-400/55 dark:hover:border-indigo-400/45';
 
 /**
  * Centralized tool configuration ordered by homepage priority:
@@ -75,8 +88,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     description:
       'Design A4 assignment cover pages with college logo, details preview, and PDF attachment.',
     icon: GraduationCap,
-    color: 'bg-amber-500/10 text-amber-500',
-    borderColor: 'hover:border-amber-500/30',
+    color: ICON_INDIGO,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['create-convert'],
     keywords: [
       'cover page',
@@ -97,8 +110,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Image to PDF',
     description: 'Convert images to PDF with custom layouts, page sizes, and image editing.',
     icon: FileImage,
-    color: 'bg-blue-500/10 text-blue-500',
-    borderColor: 'hover:border-blue-500/30',
+    color: ICON_BLUE,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['create-convert'],
     keywords: [
       'jpg to pdf',
@@ -118,8 +131,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Merge PDF',
     description: 'Combine multiple PDF files into one. Reorder and select specific pages.',
     icon: Merge,
-    color: 'bg-green-500/10 text-green-500',
-    borderColor: 'hover:border-green-500/30',
+    color: ICON_GREEN,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['organize'],
     keywords: [
       'combine',
@@ -139,8 +152,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Split PDF',
     description: 'Extract pages, split by ranges, or separate every page into individual PDFs.',
     icon: Scissors,
-    color: 'bg-orange-500/10 text-orange-500',
-    borderColor: 'hover:border-orange-500/30',
+    color: ICON_ORANGE,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['organize'],
     keywords: [
       'divide',
@@ -160,8 +173,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Page Organizer',
     description: 'Visually reorder, delete, rotate, and duplicate PDF pages.',
     icon: LayoutGrid,
-    color: 'bg-cyan-500/10 text-cyan-500',
-    borderColor: 'hover:border-cyan-500/30',
+    color: ICON_TEAL,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['organize'],
     keywords: [
       'rotate',
@@ -182,9 +195,9 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Annotate PDF',
     description: 'Add text, shapes, drawings, highlights, and signatures to your PDFs.',
     icon: Type,
-    color: 'bg-pink-500/10 text-pink-500',
-    borderColor: 'hover:border-pink-500/30',
-    categories: ['edit'],
+    color: ICON_INDIGO,
+    borderColor: UNIFIED_CARD_HOVER,
+    categories: ['edit-annotate', 'protect-sign'],
     keywords: [
       'draw',
       'highlight',
@@ -206,8 +219,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Page Numbers',
     description: 'Insert customizable page numbers, headers, and footers with live preview.',
     icon: Hash,
-    color: 'bg-emerald-500/10 text-emerald-500',
-    borderColor: 'hover:border-emerald-500/30',
+    color: ICON_BLUE,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['organize'],
     keywords: [
       'numbering',
@@ -225,9 +238,9 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Add Watermark',
     description: 'Add text or image watermarks with custom position, opacity, and style.',
     icon: Droplets,
-    color: 'bg-indigo-500/10 text-indigo-500',
-    borderColor: 'hover:border-indigo-500/30',
-    categories: ['edit'],
+    color: ICON_TEAL,
+    borderColor: UNIFIED_CARD_HOVER,
+    categories: ['edit-annotate'],
     keywords: [
       'watermark',
       'stamp',
@@ -247,8 +260,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Word to PDF',
     description: 'Convert DOCX documents to formatted vector PDFs with custom styling.',
     icon: FileType,
-    color: 'bg-blue-600/10 text-blue-600',
-    borderColor: 'hover:border-blue-600/30',
+    color: ICON_BLUE,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['create-convert'],
     keywords: [
       'docx to pdf',
@@ -266,8 +279,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'PDF to Word',
     description: 'Convert PDF documents to editable Microsoft Word (.docx) files.',
     icon: FileText,
-    color: 'bg-indigo-600/10 text-indigo-600',
-    borderColor: 'hover:border-indigo-600/30',
+    color: ICON_INDIGO,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['create-convert'],
     keywords: [
       'pdf to docx',
@@ -285,8 +298,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'PDF to Excel',
     description: 'Extract tables, spreadsheets, and data into Excel (.xlsx) & CSV.',
     icon: FileSpreadsheet,
-    color: 'bg-emerald-600/10 text-emerald-600',
-    borderColor: 'hover:border-emerald-600/30',
+    color: ICON_GREEN,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['create-convert'],
     keywords: [
       'pdf to xlsx',
@@ -307,9 +320,9 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Image Editor',
     description: 'Crop, rotate, flip, and apply filters to your images before conversion.',
     icon: Paintbrush,
-    color: 'bg-purple-500/10 text-purple-500',
-    borderColor: 'hover:border-purple-500/30',
-    categories: ['edit'],
+    color: ICON_ORANGE,
+    borderColor: UNIFIED_CARD_HOVER,
+    categories: ['edit-annotate'],
     keywords: [
       'crop image',
       'rotate image',
@@ -328,9 +341,9 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     description:
       'Add military-grade AES-256 encryption or remove password protection from PDFs.',
     icon: ShieldCheck,
-    color: 'bg-indigo-500/10 text-indigo-500',
-    borderColor: 'hover:border-indigo-500/30',
-    categories: ['security'],
+    color: ICON_INDIGO,
+    borderColor: UNIFIED_CARD_HOVER,
+    categories: ['protect-sign'],
     keywords: [
       'password',
       'encrypt',
@@ -350,8 +363,8 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'PDF to Images',
     description: 'Convert PDF pages to PNG or JPG images at your chosen resolution.',
     icon: ImageDown,
-    color: 'bg-teal-500/10 text-teal-500',
-    borderColor: 'hover:border-teal-500/30',
+    color: ICON_TEAL,
+    borderColor: UNIFIED_CARD_HOVER,
     categories: ['create-convert'],
     keywords: [
       'pdf to jpg',
@@ -369,9 +382,9 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Extract Text',
     description: 'Extract clean text and Markdown from PDF pages with real-time search.',
     icon: AlignLeft,
-    color: 'bg-sky-500/10 text-sky-500',
-    borderColor: 'hover:border-sky-500/30',
-    categories: ['intelligence'],
+    color: ICON_TEAL,
+    borderColor: UNIFIED_CARD_HOVER,
+    categories: ['other'],
     keywords: [
       'extract text',
       'copy text',
@@ -390,9 +403,9 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     label: 'Edit Metadata',
     description: 'Edit document title, author, subject, and keywords.',
     icon: FileText,
-    color: 'bg-slate-500/10 text-slate-500',
-    borderColor: 'hover:border-slate-500/30',
-    categories: ['edit'],
+    color: ICON_BLUE,
+    borderColor: UNIFIED_CARD_HOVER,
+    categories: ['other'],
     keywords: [
       'metadata',
       'properties',
@@ -463,7 +476,6 @@ function scoreToolSearch(tool: PdfToolDefinition, rawQuery: string): number {
   const corpus = CORPUS_BY_ID.get(tool.id);
   if (!corpus) return 0;
 
-  // Match all normalized tokens OR fallback to raw whitespace tokens for hyphenated/dotted queries
   const normTokens = qNorm ? qNorm.split(' ').filter(Boolean) : [];
   const rawTokens = qRaw.split(/\s+/).filter(Boolean);
 

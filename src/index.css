@@ -4,48 +4,76 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 238.7 83.5% 66.7%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 238.7 83.5% 66.7%;
+    /* Light Theme: Warm Ivory + Indigo + Teal */
+    --background: 38.2 35.5% 93.9%;          /* #F5F1EA Main background */
+    --surface-secondary: 45 28.6% 97.3%;     /* #FAF9F6 Secondary surface */
+    --header: 0 0% 100%;                     /* #FFFFFF Header background */
+    --foreground: 220.9 39.3% 11.0%;         /* #111827 Primary text */
+    --card: 0 0% 100%;                       /* #FFFFFF Card background */
+    --card-foreground: 220.9 39.3% 11.0%;    /* #111827 */
+    --popover: 0 0% 100%;                    /* #FFFFFF */
+    --popover-foreground: 220.9 39.3% 11.0%; /* #111827 */
+
+    --primary: 243.4 75.4% 58.6%;            /* #4F46E5 Primary Indigo */
+    --primary-hover: 244.5 57.9% 50.6%;      /* #4338CA Indigo hover */
+    --primary-foreground: 0 0% 100%;         /* #FFFFFF */
+
+    --teal: 173.4 80.4% 40.0%;               /* #14B8A6 Secondary Teal */
+    --teal-hover: 174.7 83.9% 31.6%;         /* #0D9488 Teal hover */
+    --teal-foreground: 0 0% 100%;            /* #FFFFFF */
+
+    --secondary: 45 28.6% 97.3%;             /* #FAF9F6 Neutral button surface */
+    --secondary-foreground: 220.9 39.3% 11.0%;
+    --muted: 38 26% 91.5%;                   /* Warm ivory muted well inside cards */
+    --muted-foreground: 215.4 16.3% 46.9%;   /* #64748B Secondary text */
+    --subtle-foreground: 215.4 16.3% 46.9%;  /* #64748B */
+
+    --accent: 38.2 35.5% 93.9%;              /* #F5F1EA Hover tint */
+    --accent-foreground: 220.9 39.3% 11.0%;
+
+    --destructive: 0 72.2% 50.6%;            /* Restrained red */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;                   /* #E5E7EB */
+    --input: 220 13% 88%;
+    --ring: 243.4 75.4% 58.6%;               /* #4F46E5 */
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 238.7 83.5% 66.7%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    /* Dark Theme: Midnight Charcoal + Indigo + Violet */
+    --background: 230.8 37.1% 6.9%;          /* #0B0D18 Main background */
+    --surface-secondary: 229.1 28.2% 15.3%;  /* #1C2032 Secondary surface */
+    --header: 232.0 31.9% 9.2%;              /* #10121F Header background */
+    --foreground: 210 40% 98%;               /* #F8FAFC Primary text */
+    --card: 230.0 30.0% 11.8%;               /* #151827 Card background */
+    --card-foreground: 210 40% 98%;          /* #F8FAFC */
+    --popover: 230.0 30.0% 11.8%;            /* #151827 */
+    --popover-foreground: 210 40% 98%;       /* #F8FAFC */
+
+    --primary: 243.4 75.4% 58.6%;            /* #4F46E5 Primary Indigo */
+    --primary-hover: 238.7 83.5% 66.7%;      /* #6366F1 Indigo hover */
+    --primary-foreground: 0 0% 100%;         /* #FFFFFF */
+
+    --teal: 173.4 80.4% 40.0%;               /* #14B8A6 Secondary Teal */
+    --teal-hover: 174.7 83.9% 31.6%;         /* #0D9488 */
+    --teal-foreground: 0 0% 100%;
+
+    --secondary: 229.1 28.2% 15.3%;          /* #1C2032 */
+    --secondary-foreground: 210 40% 98%;     /* #F8FAFC */
+    --muted: 229.1 28.2% 15.3%;              /* #1C2032 */
+    --muted-foreground: 240.0 11.9% 67.1%;   /* #A1A1B5 Secondary text */
+    --subtle-foreground: 227.6 11.9% 52.4%;  /* #777D94 Muted text */
+
+    --accent: 229.1 28.2% 15.3%;             /* #1C2032 */
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 238.7 83.5% 66.7%;
+
+    --destructive: 0 72.2% 50.6%;            /* Restrained red */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228.5 23.2% 22.0%;             /* #2B3045 */
+    --input: 228.5 23.2% 22.0%;              /* #2B3045 */
+    --ring: 238.7 83.5% 66.7%;               /* #6366F1 */
   }
 }
 
@@ -54,9 +82,16 @@
     @apply border-border;
     -webkit-tap-highlight-color: transparent;
   }
+
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1, "cv02" 1, "cv03" 1, "cv04" 1;
     touch-action: manipulation;
   }
 }
@@ -81,12 +116,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 3px;
+  background: hsl(var(--muted-foreground) / 0.28);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: hsl(var(--muted-foreground) / 0.45);
 }
 
 /* Drag and drop styles */
@@ -107,16 +142,27 @@
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+  animation: fade-in 0.28s ease-out;
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.96); }
   to { opacity: 1; transform: scale(1); }
 }
 
 .animate-scale-in {
-  animation: scale-in 0.2s ease-out;
+  animation: scale-in 0.18s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Thumbnail grid */
@@ -128,5 +174,9 @@
 
 /* Print-like shadow for PDF pages */
 .page-shadow {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.05);
+}
+
+.dark .page-shadow {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }

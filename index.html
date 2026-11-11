@@ -3,24 +3,50 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/logo/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/logo/favicon-16x16.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
     <title>PDF Render — All-in-One PDF Editor & Generator</title>
     <meta name="description" content="Create, edit, merge, split, compress, and convert PDFs directly in your browser. No uploads, no servers — 100% client-side." />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="PDF Render — All-in-One PDF Editor & Generator" />
+    <meta property="og:description" content="Create, edit, merge, split, compress, and convert PDFs directly in your browser. No uploads, no servers — 100% client-side." />
+    <meta property="og:image" content="/assets/logo/pdf-render-app-icon-512.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="PDF Render — All-in-One PDF Editor & Generator" />
+    <meta name="twitter:description" content="Create, edit, merge, split, compress, and convert PDFs directly in your browser. No uploads, no servers — 100% client-side." />
+    <meta name="twitter:image" content="/assets/logo/pdf-render-app-icon-512.png" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#6366F1" />
+    <meta name="theme-color" content="#4F46E5" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PDF Render" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <script>
       (function() {
         try {
-          const theme = localStorage.getItem('pdf_render_theme') || 'dark';
+          const saved = localStorage.getItem('pdf_render_theme');
+          const theme = saved === 'light' ? 'light' : 'dark';
+          const root = document.documentElement;
           if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
+            root.classList.add('dark');
+            root.style.colorScheme = 'dark';
+            root.style.backgroundColor = '#0B0D18';
           } else {
-            document.documentElement.classList.remove('dark');
+            root.classList.remove('dark');
+            root.style.colorScheme = 'light';
+            root.style.backgroundColor = '#F5F1EA';
+          }
+          const metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme) {
+            metaTheme.setAttribute('content', theme === 'dark' ? '#10121F' : '#4F46E5');
           }
         } catch (e) {}
       })();

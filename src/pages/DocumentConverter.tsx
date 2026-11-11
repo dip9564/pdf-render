@@ -1231,19 +1231,19 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
 
       {/* Main Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-3 w-full max-w-2xl mx-auto mb-6 sm:mb-8 h-11 p-1 bg-muted/60">
+        <TabsList className="grid grid-cols-3 w-full max-w-2xl mx-auto mb-6 sm:mb-8 h-11 p-1 bg-muted/70 border border-border/60">
           <TabsTrigger value="word-to-pdf" className="text-xs sm:text-sm font-medium gap-1.5 data-[state=active]:shadow-sm">
-            <FileType className="h-4 w-4 text-blue-500" />
+            <FileType className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="hidden sm:inline">Word to PDF</span>
             <span className="sm:hidden">Word</span>
           </TabsTrigger>
           <TabsTrigger value="pdf-to-word" className="text-xs sm:text-sm font-medium gap-1.5 data-[state=active]:shadow-sm">
-            <FileText className="h-4 w-4 text-indigo-500" />
+            <FileText className="h-4 w-4 text-primary" />
             <span className="hidden sm:inline">PDF to Word</span>
             <span className="sm:hidden">To Word</span>
           </TabsTrigger>
           <TabsTrigger value="pdf-to-excel" className="text-xs sm:text-sm font-medium gap-1.5 data-[state=active]:shadow-sm">
-            <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <span className="hidden sm:inline">PDF to Excel</span>
             <span className="sm:hidden">To Excel</span>
           </TabsTrigger>
@@ -1254,8 +1254,8 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
         {/* ========================================================= */}
         <TabsContent value="word-to-pdf" className="space-y-6">
           {!wordFile ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 sm:p-10">
+            <Card>
+              <CardContent className="p-5 sm:p-7">
                 <FileUploader
                   accept=".docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
                   multiple={false}
@@ -1517,8 +1517,8 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
         {/* ========================================================= */}
         <TabsContent value="pdf-to-word" className="space-y-6">
           {!pdfToWordFile ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 sm:p-10">
+            <Card>
+              <CardContent className="p-5 sm:p-7">
                 <FileUploader
                   accept=".pdf,application/pdf"
                   multiple={false}
@@ -1533,7 +1533,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
               {/* File Info Bar with Badges */}
               <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-card border rounded-lg shadow-xs">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <FileText className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -1549,22 +1549,22 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                         </Badge>
                       )}
                       {conversionStats.tablesCount > 0 && (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-emerald-600 border-emerald-500/30">
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
                           {conversionStats.tablesCount} Tables
                         </Badge>
                       )}
                       {conversionStats.codeCount > 0 && (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-cyan-600 border-cyan-500/30">
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-teal-600 dark:text-teal-400 border-teal-500/30">
                           {conversionStats.codeCount} Code Blocks
                         </Badge>
                       )}
                       {conversionStats.imagesCount > 0 && (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-purple-600 border-purple-500/30">
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-primary border-primary/30">
                           {conversionStats.imagesCount} Images
                         </Badge>
                       )}
                       {conversionStats.ocrReviewCount > 0 && (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-amber-600 border-amber-500/40 bg-amber-500/10">
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4 text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10">
                           {conversionStats.ocrReviewCount} OCR Review
                         </Badge>
                       )}
@@ -1609,7 +1609,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Select value={ocrLanguage} onValueChange={setOcrLanguage}>
-                      <SelectTrigger className="h-7 text-xs w-[120px] bg-background">
+                      <SelectTrigger className="h-7 text-xs w-[120px] bg-card">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1624,7 +1624,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                       size="sm"
                       onClick={handleTriggerOcr}
                       disabled={pdfToWordLoading}
-                      className="h-7 text-xs bg-amber-600 hover:bg-amber-700 text-white shrink-0"
+                      className="h-7 text-xs shrink-0"
                     >
                       <Sparkles className="h-3.5 w-3.5 mr-1" />
                       Run OCR on Scanned Pages
@@ -1648,7 +1648,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                 <div className="p-4 bg-muted/40 border rounded-lg space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-medium flex items-center gap-1.5">
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
                       {analysisProgress.message}
                     </span>
                     <span className="font-mono text-muted-foreground">
@@ -1657,7 +1657,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                   </div>
                   <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-indigo-600 h-2 transition-all duration-300 rounded-full"
+                      className="bg-primary h-2 transition-all duration-300 rounded-full"
                       style={{ width: `${analysisProgress.percent}%` }}
                     />
                   </div>
@@ -1672,7 +1672,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                   <Card>
                     <CardHeader className="pb-3 pt-4 px-4 sm:px-5">
                       <CardTitle className="text-base flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-indigo-500" />
+                        <Layers className="h-4 w-4 text-primary" />
                         Conversion Mode
                       </CardTitle>
                       <CardDescription className="text-xs">
@@ -1684,13 +1684,13 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                       <div
                         onClick={() => handleModeChange('editable')}
                         className={cn(
-                          'p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3 text-xs',
+                          'p-3 rounded-lg border cursor-pointer transition-colors flex items-start gap-3 text-xs',
                           conversionMode === 'editable'
-                            ? 'border-indigo-500 bg-indigo-500/10 shadow-xs ring-1 ring-indigo-500/30'
+                            ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
                             : 'border-border hover:bg-muted/50'
                         )}
                       >
-                        <div className="p-1.5 rounded-md bg-indigo-500/20 text-indigo-500 mt-0.5">
+                        <div className="p-1.5 rounded-md bg-primary/15 text-primary mt-0.5">
                           <FileText className="h-4 w-4" />
                         </div>
                         <div className="space-y-1">
@@ -1710,13 +1710,13 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                       <div
                         onClick={() => handleModeChange('visual')}
                         className={cn(
-                          'p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3 text-xs',
+                          'p-3 rounded-lg border cursor-pointer transition-colors flex items-start gap-3 text-xs',
                           conversionMode === 'visual'
-                            ? 'border-indigo-500 bg-indigo-500/10 shadow-xs ring-1 ring-indigo-500/30'
+                            ? 'border-primary bg-primary/10 shadow-xs ring-1 ring-primary/30'
                             : 'border-border hover:bg-muted/50'
                         )}
                       >
-                        <div className="p-1.5 rounded-md bg-purple-500/20 text-purple-500 mt-0.5">
+                        <div className="p-1.5 rounded-md bg-teal-500/15 text-teal-600 dark:text-teal-400 mt-0.5">
                           <ImageIcon className="h-4 w-4" />
                         </div>
                         <div className="space-y-1">
@@ -1736,7 +1736,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                     <Card>
                       <CardHeader className="pb-3 pt-4 px-4 sm:px-5">
                         <CardTitle className="text-base flex items-center gap-2">
-                          <Settings2 className="h-4 w-4 text-indigo-500" />
+                          <Settings2 className="h-4 w-4 text-primary" />
                           Document Layout Options
                         </CardTitle>
                         <CardDescription className="text-xs">
@@ -1832,7 +1832,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
 
                   {/* Action Download Button */}
                   <Button
-                    className="w-full h-11 text-sm font-semibold shadow-md touch-manipulation bg-indigo-600 hover:bg-indigo-700"
+                    className="w-full h-11 text-sm font-semibold shadow-md touch-manipulation"
                     onClick={handleDownloadDocx}
                     disabled={pdfToWordLoading || pdfToWordExporting}
                   >
@@ -1849,7 +1849,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                     <CardHeader className="py-3 px-4 sm:px-5 border-b flex-row items-center justify-between space-y-0">
                       <div>
                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                          <Eye className="h-4 w-4 text-indigo-500" />
+                          <Eye className="h-4 w-4 text-primary" />
                           Document Layout Preview
                         </CardTitle>
                         <CardDescription className="text-[11px]">
@@ -1964,8 +1964,8 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
         {/* ========================================================= */}
         <TabsContent value="pdf-to-excel" className="space-y-6">
           {!pdfToExcelFile ? (
-            <Card className="border-dashed">
-              <CardContent className="p-6 sm:p-10">
+            <Card>
+              <CardContent className="p-5 sm:p-7">
                 <FileUploader
                   accept=".pdf,application/pdf"
                   multiple={false}
@@ -1980,7 +1980,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
               {/* File Info Bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-card border rounded-lg shadow-xs">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <FileSpreadsheet className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -2052,10 +2052,10 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                                 key={tbl.id}
                                 onClick={() => setActiveTableIndex(idx)}
                                 className={cn(
-                                  'text-xs px-2.5 py-1 rounded-md border text-left transition-all touch-manipulation',
+                                  'text-xs px-2.5 py-1 rounded-md border text-left transition-colors touch-manipulation',
                                   activeTableIndex === idx
-                                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400 font-medium'
-                                    : 'bg-background hover:bg-muted/70 text-muted-foreground border-border'
+                                    ? 'bg-primary/10 border-primary text-primary font-medium'
+                                    : 'bg-card hover:bg-muted/70 text-muted-foreground border-border'
                                 )}
                               >
                                 {tbl.name} ({tbl.rows.length} rows)
@@ -2100,7 +2100,7 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                       {/* Action Buttons */}
                       <div className="pt-3 space-y-2.5">
                         <Button
-                          className="w-full h-11 text-sm font-semibold shadow-md touch-manipulation bg-emerald-600 hover:bg-emerald-700 text-white"
+                          className="w-full h-11 text-sm font-semibold shadow-md touch-manipulation"
                           onClick={handleDownloadXlsx}
                           disabled={pdfToExcelExporting || detectedTables.length === 0}
                         >
@@ -2161,17 +2161,17 @@ export default function DocumentConverter({ initialTab = 'word-to-pdf' }: Docume
                               <span>•</span>
                               <span>Page {currentTable.startPage}{currentTable.endPage !== currentTable.startPage ? `-${currentTable.endPage}` : ''}</span>
                               {currentTable.rows.some((r) => r.some((c) => c.isCurrency)) && (
-                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 text-emerald-600 bg-emerald-500/10">
+                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
                                   ₹/$ Currency
                                 </Badge>
                               )}
                               {currentTable.rows.some((r) => r.some((c) => c.isPercent)) && (
-                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 text-blue-600 bg-blue-500/10">
+                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 text-blue-600 dark:text-blue-400 bg-blue-500/10">
                                   % Percent
                                 </Badge>
                               )}
                               {currentTable.endPage > currentTable.startPage && (
-                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 text-indigo-600 bg-indigo-500/10">
+                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 text-primary bg-primary/10">
                                   Multi-page Stitched
                                 </Badge>
                               )}

@@ -1303,7 +1303,7 @@ export default function ImageToPdf() {
         {/* Mobile Quick Generate PDF Button */}
         {isMobile && (
           <Button
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-9 text-xs font-medium mt-1"
+            className="w-full h-9 text-xs font-medium mt-1"
             onClick={generatePdf}
             disabled={images.length === 0 || isGenerating}
           >
@@ -1489,7 +1489,7 @@ export default function ImageToPdf() {
 
         {/* Generate Button */}
         <Button
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 mt-1"
+          className="w-full h-10 mt-1"
           size="lg"
           onClick={generatePdf}
           disabled={images.length === 0 || isGenerating}
@@ -1684,7 +1684,7 @@ export default function ImageToPdf() {
 
         {isMobile && (
           <Button
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 mt-2"
+            className="w-full h-10 mt-2"
             onClick={generatePdf}
             disabled={images.length === 0 || isGenerating}
           >
@@ -1770,39 +1770,39 @@ export default function ImageToPdf() {
                 type="button"
                 onClick={() => setMobileTab('edit')}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-colors touch-manipulation',
                   mobileTab === 'edit'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    ? 'bg-card text-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Paintbrush className="h-3.5 w-3.5 text-blue-500" />
+                <Paintbrush className="h-3.5 w-3.5 text-primary" />
                 <span className="truncate">Filters & Edit</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMobileTab('settings')}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-colors touch-manipulation',
                   mobileTab === 'settings'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    ? 'bg-card text-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Settings2 className="h-3.5 w-3.5 text-blue-500" />
+                <Settings2 className="h-3.5 w-3.5 text-primary" />
                 <span className="truncate">PDF Settings</span>
               </button>
               <button
                 type="button"
                 onClick={() => setMobileTab('images')}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-all touch-manipulation',
+                  'flex items-center justify-center gap-1.5 py-2 px-1 rounded-lg transition-colors touch-manipulation',
                   mobileTab === 'images'
-                    ? 'bg-background text-foreground font-semibold shadow-xs'
+                    ? 'bg-card text-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <FileImage className="h-3.5 w-3.5 text-blue-500" />
+                <FileImage className="h-3.5 w-3.5 text-primary" />
                 <span className="truncate">Images ({images.length})</span>
               </button>
             </div>

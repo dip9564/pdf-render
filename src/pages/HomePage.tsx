@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Clock,
+  History,
   Lock,
   Search,
   SearchX,
@@ -104,46 +104,46 @@ export default function HomePage() {
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 pt-6 sm:pt-8 pb-12 max-w-7xl overflow-x-hidden">
-      {/* Compact Hero Section */}
-      <section className="text-center max-w-3xl mx-auto mb-5 sm:mb-6">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium mb-2.5">
-          <Zap className="h-3 w-3 shrink-0" />
+    <div className="container mx-auto px-3.5 sm:px-6 pt-7 sm:pt-10 pb-16 max-w-7xl overflow-x-hidden">
+      {/* Elegant Architectural Hero Section */}
+      <section className="text-center max-w-3xl mx-auto mb-6 sm:mb-7">
+        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-card/90 dark:bg-card/85 border border-border shadow-sm text-xs font-medium text-foreground/90 mb-3.5 sm:mb-4 backdrop-blur-sm">
+          <span className="h-1.5 w-1.5 rounded-full bg-teal shrink-0" />
           <span>100% Free &amp; Client-Side</span>
         </div>
 
-        <h1 className="text-2xl sm:text-4xl font-bold tracking-tight mb-2">
+        <h1 className="text-[30px] sm:text-[40px] lg:text-[44px] font-bold tracking-[-0.025em] text-foreground leading-[1.12] mb-3">
           Everything <span className="text-primary">PDF</span>, All in One Place
         </h1>
 
-        <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto mb-3.5 leading-relaxed">
+        <p className="text-[15px] sm:text-base text-muted-foreground max-w-2xl mx-auto mb-4 sm:mb-5 leading-[1.6]">
           Create, convert, organize and edit your PDF documents with powerful tools in one place.
         </p>
 
-        {/* Compact Trust Indicators */}
-        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Lock className="h-3.5 w-3.5 text-green-500 shrink-0" />
-            <span>Private &amp; Secure</span>
+        {/* Theme-aware Trust Indicators */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5 text-xs text-muted-foreground">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/85 dark:bg-card/80 px-3 py-1 shadow-sm backdrop-blur-xs">
+            <Lock className="h-3.5 w-3.5 text-teal shrink-0" />
+            <span className="font-medium text-foreground/85">Private &amp; Secure</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Shield className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-            <span>No File Uploads</span>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/85 dark:bg-card/80 px-3 py-1 shadow-sm backdrop-blur-xs">
+            <Shield className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="font-medium text-foreground/85">No File Uploads</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Zap className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-            <span>Instant Processing</span>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card/85 dark:bg-card/80 px-3 py-1 shadow-sm backdrop-blur-xs">
+            <Zap className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span className="font-medium text-foreground/85">Instant Processing</span>
           </div>
         </div>
       </section>
 
-      {/* Prominent Search & Category Controls */}
-      <section aria-label="Search and filter PDF tools" className="mb-6 sm:mb-7 space-y-3.5">
+      {/* Prominent Search & Category Filters */}
+      <section aria-label="Search and filter PDF tools" className="mb-8 space-y-4">
         {/* Search Bar */}
         <div className="max-w-2xl mx-auto w-full">
-          <div className="relative flex items-center w-full rounded-xl border border-border/80 bg-card/90 shadow-sm transition-[border-color,box-shadow] focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
+          <div className="group relative flex items-center w-full rounded-2xl border border-border/95 dark:border-[#343B54] bg-card shadow-[0_2px_10px_rgba(15,23,42,0.05),0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[0_4px_18px_rgba(4,5,12,0.45)] transition-[border-color,box-shadow] duration-200 hover:border-primary/45 dark:hover:border-indigo-400/50 focus-within:border-primary dark:focus-within:border-indigo-400 focus-within:ring-[3px] focus-within:ring-primary/20 dark:focus-within:ring-indigo-400/25 focus-within:shadow-[0_8px_24px_-6px_rgba(79,70,229,0.22)]">
             <Search
-              className="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none shrink-0"
+              className="absolute left-4 h-[18px] w-[18px] text-muted-foreground group-focus-within:text-primary dark:group-focus-within:text-indigo-400 transition-colors pointer-events-none shrink-0"
               aria-hidden="true"
             />
             <input
@@ -160,19 +160,19 @@ export default function HomePage() {
                 }
               }}
               placeholder="Search PDF tools..."
-              className="w-full h-11 sm:h-12 bg-transparent pl-10 pr-20 text-sm sm:text-base text-foreground placeholder:text-muted-foreground focus:outline-none rounded-xl"
+              className="w-full h-[52px] sm:h-[54px] bg-transparent pl-11 pr-20 text-[15px] sm:text-base text-foreground placeholder:text-muted-foreground/85 focus:outline-none rounded-2xl"
               autoComplete="off"
               spellCheck={false}
             />
 
-            <div className="absolute right-2.5 flex items-center gap-1.5">
+            <div className="absolute right-3 flex items-center gap-1.5">
               {searchQuery ? (
                 <button
                   type="button"
                   onClick={handleClearSearch}
                   aria-label="Clear search"
                   title="Clear search"
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -182,7 +182,7 @@ export default function HomePage() {
                   onClick={() => searchInputRef.current?.focus()}
                   tabIndex={-1}
                   aria-hidden="true"
-                  className="hidden sm:inline-flex items-center gap-0.5 rounded-md border bg-muted/70 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground select-none"
+                  className="hidden sm:inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface-secondary dark:bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground select-none"
                 >
                   <span>{isMac ? '⌘' : 'Ctrl'}</span>
                   <span>K</span>
@@ -201,6 +201,7 @@ export default function HomePage() {
           >
             {PDF_TOOL_CATEGORIES.map((category) => {
               const isSelected = activeCategory === category.id;
+              const CategoryIcon = category.icon;
               return (
                 <button
                   key={category.id}
@@ -209,13 +210,14 @@ export default function HomePage() {
                   aria-selected={isSelected}
                   onClick={() => setActiveCategory(category.id)}
                   className={cn(
-                    'shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs sm:text-sm font-medium border transition-[border-color,box-shadow] touch-manipulation min-h-[36px] inline-flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                    'shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs sm:text-[13px] font-medium border transition-[border-color,box-shadow,color,background-color] duration-150 touch-manipulation min-h-[38px] inline-flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                     isSelected
                       ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                      : 'bg-card/80 text-muted-foreground border-border hover:text-foreground hover:bg-muted/70 hover:border-primary/30'
+                      : 'bg-card text-muted-foreground border-border hover:text-foreground hover:bg-surface-secondary dark:hover:bg-secondary hover:border-indigo-400/45'
                   )}
                 >
-                  {category.label}
+                  <CategoryIcon className="h-3.5 w-3.5 shrink-0" />
+                  <span>{category.label}</span>
                 </button>
               );
             })}
@@ -223,24 +225,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Recently Used Section (compact, shown only when history exists and default view is active) */}
+      {/* Recently Used Section */}
       {showRecentSection && (
-        <section aria-label="Recently used tools" className="mb-6 sm:mb-7">
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <h2 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+        <section aria-label="Recently used tools" className="mb-11 sm:mb-12">
+          <div className="flex items-center justify-between gap-2 mb-3.5">
+            <h2 className="text-xs sm:text-[13px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <History className="h-3.5 w-3.5 text-primary shrink-0" />
               <span>Recently Used</span>
             </h2>
             <button
               type="button"
               onClick={handleClearRecent}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1.5 py-0.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1 rounded-lg hover:bg-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Clear
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {recentTools.map((tool) => (
               <Link
                 key={`recent-${tool.id}`}
@@ -250,27 +252,27 @@ export default function HomePage() {
               >
                 <div
                   className={cn(
-                    'flex items-center gap-2.5 rounded-xl border bg-card/85 px-2.5 py-2 sm:px-3 sm:py-2.5 transition-[transform,box-shadow,border-color] duration-200 hover:bg-card hover:shadow-sm active:scale-[0.99] min-w-0',
+                    'flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-3 shadow-card transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.99] min-w-0',
                     tool.borderColor
                   )}
                 >
                   <div
                     className={cn(
-                      'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg',
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
                       tool.color
                     )}
                   >
-                    <tool.icon className="h-4 w-4" />
+                    <tool.icon className="h-4 w-4 shrink-0" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] xl:text-sm font-semibold text-foreground truncate leading-snug">
+                    <p className="text-sm font-semibold text-foreground truncate leading-snug">
                       {tool.label}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate leading-tight">
+                    <p className="text-[11px] text-muted-foreground truncate leading-snug mt-0.5">
                       {getPrimaryCategoryLabel(tool)}
                     </p>
                   </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-55 group-hover:opacity-100 group-hover:text-primary group-hover:translate-x-0.5 transition-[transform,opacity,color] duration-150 shrink-0" />
                 </div>
               </Link>
             ))}
@@ -280,9 +282,9 @@ export default function HomePage() {
 
       {/* Main Tool Directory Header & Count */}
       <section aria-label="PDF tools directory">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <h2 className="text-sm sm:text-base font-semibold tracking-tight">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4 sm:mb-5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-foreground">
               {isSearching
                 ? activeCategory !== 'all'
                   ? `Search Results in ${activeCategoryLabel}`
@@ -290,7 +292,7 @@ export default function HomePage() {
                 : activeCategoryLabel}
             </h2>
             <span
-              className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0"
+              className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-muted-foreground shrink-0"
               aria-live="polite"
             >
               {filteredTools.length} {filteredTools.length === 1 ? 'tool' : 'tools'}
@@ -301,7 +303,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={handleResetFilters}
-              className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
+              className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1.5 py-0.5"
             >
               Reset filters
             </button>
@@ -310,34 +312,34 @@ export default function HomePage() {
 
         {/* Tools Grid or Empty State */}
         {filteredTools.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
             {filteredTools.map((tool) => (
               <Link
                 key={tool.id}
                 to={tool.path}
                 onClick={() => handleToolOpen(tool.id)}
-                className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background touch-manipulation"
+                className="group block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background touch-manipulation"
               >
                 <Card
                   className={cn(
-                    'h-full flex flex-col transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99] rounded-xl',
+                    'h-full sm:min-h-[196px] flex flex-col rounded-2xl border-border bg-card shadow-card transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-[3px] hover:shadow-card-hover active:scale-[0.99]',
                     tool.borderColor
                   )}
                 >
-                  <CardContent className="p-4 sm:p-5 flex flex-col h-full min-w-0">
+                  <CardContent className="p-5 flex flex-col h-full min-w-0">
                     <div
                       className={cn(
-                        'inline-flex items-center justify-center w-10 h-10 rounded-lg shrink-0 mb-3',
+                        'inline-flex items-center justify-center w-10 h-10 rounded-xl shrink-0 mb-4',
                         tool.color
                       )}
                     >
-                      <tool.icon className="h-5 w-5" />
+                      <tool.icon className="h-5 w-5 shrink-0" />
                     </div>
-                    <h3 className="font-semibold text-base mb-1.5 flex items-center justify-between gap-2 min-w-0">
-                      <span className="leading-snug">{tool.label}</span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-65 group-hover:opacity-100 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+                    <h3 className="font-semibold text-[15px] sm:text-base tracking-[-0.01em] text-foreground mb-2 flex items-center justify-between gap-2 min-w-0">
+                      <span className="leading-snug truncate">{tool.label}</span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-50 group-hover:opacity-100 group-hover:text-primary group-hover:translate-x-0.5 transition-[transform,opacity,color] duration-150" />
                     </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed flex-1">
+                    <p className="text-[13px] sm:text-[13.5px] text-muted-foreground dark:text-[#AEB3C6] leading-[1.62] flex-1">
                       {tool.description}
                     </p>
                   </CardContent>
@@ -346,11 +348,11 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-card/50 px-5 py-10 sm:py-12 text-center max-w-xl mx-auto">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+          <div className="rounded-2xl border border-dashed border-border bg-card/85 px-6 py-12 text-center max-w-xl mx-auto shadow-card">
+            <div className="mx-auto mb-3.5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <SearchX className="h-6 w-6" />
             </div>
-            <h3 className="text-base font-semibold mb-1">
+            <h3 className="text-base font-semibold text-foreground mb-1">
               {isSearching
                 ? `No tools found for "${searchQuery.trim()}"`
                 : `No tools in ${activeCategoryLabel}`}
@@ -377,34 +379,48 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="mt-14 sm:mt-16 text-center">
-        <h2 className="text-xl sm:text-2xl font-bold mb-8">How It Works</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 max-w-3xl mx-auto">
-          <div className="flex flex-col items-center">
-            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-bold mb-2.5">
+      <section className="mt-16 sm:mt-20 text-center">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-2">
+          How It Works
+        </h2>
+        <p className="text-xs sm:text-sm text-muted-foreground mb-8 max-w-lg mx-auto">
+          Every operation executes locally in your browser — fast, private, and reliable.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 max-w-4xl mx-auto">
+          <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-xs p-6 shadow-card flex flex-col items-center">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/15 flex items-center justify-center text-sm font-bold mb-3">
               1
             </div>
-            <h3 className="font-semibold text-sm sm:text-base mb-1">Choose a Tool</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Select from the free PDF tools above
+            <h3 className="font-semibold text-sm sm:text-base text-foreground mb-1">
+              Choose a Tool
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Select from our suite of free client-side PDF utilities above
             </p>
           </div>
-          <div className="flex flex-col items-center">
-            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-bold mb-2.5">
+
+          <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-xs p-6 shadow-card flex flex-col items-center">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/15 flex items-center justify-center text-sm font-bold mb-3">
               2
             </div>
-            <h3 className="font-semibold text-sm sm:text-base mb-1">Upload &amp; Edit</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Drop your files and customize in browser
+            <h3 className="font-semibold text-sm sm:text-base text-foreground mb-1">
+              Upload &amp; Edit
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Drop your files securely and customize settings directly in browser
             </p>
           </div>
-          <div className="flex flex-col items-center">
-            <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-bold mb-2.5">
+
+          <div className="rounded-2xl border border-border bg-card/90 backdrop-blur-xs p-6 shadow-card flex flex-col items-center">
+            <div className="w-10 h-10 rounded-xl bg-teal/10 text-teal border border-teal/20 flex items-center justify-center text-sm font-bold mb-3">
               3
             </div>
-            <h3 className="font-semibold text-sm sm:text-base mb-1">Download</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Get your processed PDF instantly
+            <h3 className="font-semibold text-sm sm:text-base text-foreground mb-1">
+              Download
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Export your finished PDF or converted document immediately
             </p>
           </div>
         </div>

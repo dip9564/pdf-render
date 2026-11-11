@@ -674,7 +674,7 @@ export function SavedProfilesDialog({
                             'flex items-center justify-center rounded-lg border px-2 sm:px-2.5 py-2 sm:py-1.5 text-xs font-medium leading-tight transition-colors text-center',
                             editCollege.logoMode === mode
                               ? 'border-primary bg-primary/10 text-primary font-semibold'
-                              : 'border-border bg-background hover:bg-muted/50'
+                              : 'border-border bg-card hover:bg-muted/50'
                           )}
                         >
                           {formatLogoModeLabel(mode)}
@@ -685,7 +685,7 @@ export function SavedProfilesDialog({
 
                   {/* Custom Logo inside Edit */}
                   {editCollege.logoMode === 'custom' && (
-                    <div className="rounded-lg border bg-background p-2.5 space-y-2">
+                    <div className="rounded-lg border bg-card p-2.5 space-y-2">
                       <input
                         ref={editLogoInputRef}
                         type="file"
@@ -832,7 +832,7 @@ export function SavedProfilesDialog({
                     {editCollege.logoMode !== 'none' && (
                       <div className="sm:col-span-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <Label className="text-xs">Logo Position</Label>
-                        <div className="grid grid-cols-2 sm:inline-flex w-full sm:w-auto rounded-lg border bg-muted/40 p-0.5 text-xs">
+                        <div className="grid grid-cols-2 sm:inline-flex w-full sm:w-auto rounded-lg border border-border/60 bg-muted/60 p-0.5 text-xs">
                           <button
                             type="button"
                             onClick={() =>
@@ -843,7 +843,7 @@ export function SavedProfilesDialog({
                             className={cn(
                               'px-2.5 py-1 rounded-md transition-colors text-center',
                               editCollege.logoPosition === 'left'
-                                ? 'bg-background text-foreground font-semibold shadow-xs'
+                                ? 'bg-card text-foreground font-semibold shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground'
                             )}
                           >
@@ -859,7 +859,7 @@ export function SavedProfilesDialog({
                             className={cn(
                               'px-2.5 py-1 rounded-md transition-colors text-center',
                               editCollege.logoPosition === 'center'
-                                ? 'bg-background text-foreground font-semibold shadow-xs'
+                                ? 'bg-card text-foreground font-semibold shadow-xs'
                                 : 'text-muted-foreground hover:text-foreground'
                             )}
                           >
@@ -1041,7 +1041,7 @@ export function SavedProfilesDialog({
             <DialogHeader>
               <div className="flex flex-wrap items-center gap-2 pr-6">
                 <DialogTitle className="flex items-center gap-2 text-base">
-                  <FolderOpen className="h-4 w-4 text-amber-500" />
+                  <FolderOpen className="h-4 w-4 text-primary" />
                   Saved Profiles
                 </DialogTitle>
                 <Badge variant="secondary" className="text-[11px]">
@@ -1078,8 +1078,8 @@ export function SavedProfilesDialog({
                 <p className="text-xs text-muted-foreground">Loading saved profiles...</p>
               </div>
             ) : profiles.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/15 px-6 py-10 text-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 mb-3">
+              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-secondary dark:bg-background/40 px-6 py-10 text-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary mb-3">
                   <BookmarkPlus className="h-5 w-5" />
                 </div>
                 <p className="text-sm font-semibold">No saved profiles yet</p>
