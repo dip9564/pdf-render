@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   LucideIcon,
   Merge,
+  Minimize2,
   Paintbrush,
   PenLine,
   Scissors,
@@ -77,10 +78,10 @@ const UNIFIED_CARD_HOVER = 'hover:border-indigo-400/55 dark:hover:border-indigo-
 
 /**
  * Centralized tool configuration ordered by homepage priority:
- * Primary tools (1-8), Conversion tools (9-11), Other tools (12-16).
+ * Primary tools (1-9), Conversion tools (10-12), Other tools (13-17).
  */
 export const PDF_TOOLS: readonly PdfToolDefinition[] = [
-  // Primary tools (1-8)
+  // Primary tools (1-9)
   {
     id: 'front-page',
     path: '/front-page',
@@ -168,6 +169,29 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
     priority: 4,
   },
   {
+    id: 'compress-pdf',
+    path: '/compress-pdf',
+    label: 'Compress PDF',
+    description:
+      'Reduce PDF file size cleanly while preserving crisp text, vectors, links, and bookmarks.',
+    icon: Minimize2,
+    color: ICON_INDIGO,
+    borderColor: UNIFIED_CARD_HOVER,
+    categories: ['other', 'organize'],
+    keywords: [
+      'compress',
+      'reduce size',
+      'shrink pdf',
+      'optimize pdf',
+      'smaller file',
+      'file size',
+      'downsample',
+      'ccitt',
+      'squeeze',
+    ],
+    priority: 5,
+  },
+  {
     id: 'organize-pdf',
     path: '/organize-pdf',
     label: 'Page Organizer',
@@ -187,7 +211,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'turn',
       'orientation',
     ],
-    priority: 5,
+    priority: 6,
   },
   {
     id: 'annotate',
@@ -211,7 +235,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'pen',
       'freehand',
     ],
-    priority: 6,
+    priority: 7,
   },
   {
     id: 'page-numbers',
@@ -230,7 +254,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'page count',
       'bates numbering',
     ],
-    priority: 7,
+    priority: 8,
   },
   {
     id: 'watermark',
@@ -250,10 +274,10 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'overlay',
       'logo watermark',
     ],
-    priority: 8,
+    priority: 9,
   },
 
-  // Conversion tools (9-11)
+  // Conversion tools (10-12)
   {
     id: 'word-to-pdf',
     path: '/word-to-pdf',
@@ -271,7 +295,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'word document',
       'office to pdf',
     ],
-    priority: 9,
+    priority: 10,
   },
   {
     id: 'pdf-to-word',
@@ -290,7 +314,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'microsoft word',
       'docx',
     ],
-    priority: 10,
+    priority: 11,
   },
   {
     id: 'pdf-to-excel',
@@ -310,10 +334,10 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'convert excel',
       'worksheet',
     ],
-    priority: 11,
+    priority: 12,
   },
 
-  // Other tools (12-16)
+  // Other tools (13-17)
   {
     id: 'image-editor',
     path: '/image-editor',
@@ -332,7 +356,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'contrast',
       'photo editor',
     ],
-    priority: 12,
+    priority: 13,
   },
   {
     id: 'protect-pdf',
@@ -355,7 +379,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'remove password',
       'permissions',
     ],
-    priority: 13,
+    priority: 14,
   },
   {
     id: 'pdf-to-images',
@@ -374,7 +398,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'render pages',
       'snapshots',
     ],
-    priority: 14,
+    priority: 15,
   },
   {
     id: 'extract-text',
@@ -395,7 +419,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'pdf intelligence',
       'ocr text',
     ],
-    priority: 15,
+    priority: 16,
   },
   {
     id: 'metadata',
@@ -415,7 +439,7 @@ export const PDF_TOOLS: readonly PdfToolDefinition[] = [
       'tags',
       'info dictionary',
     ],
-    priority: 16,
+    priority: 17,
   },
 ] as const;
 

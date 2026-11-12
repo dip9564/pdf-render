@@ -19,6 +19,7 @@ const ProtectPdf = lazy(() => import('@/pages/ProtectPdf'));
 const ExtractText = lazy(() => import('@/pages/ExtractText'));
 const DocumentConverter = lazy(() => import('@/pages/DocumentConverter'));
 const FrontPageGenerator = lazy(() => import('@/pages/FrontPageGenerator'));
+const CompressPdf = lazy(() => import('@/pages/CompressPdf'));
 
 function PageLoading() {
   return (
@@ -77,7 +78,7 @@ export default function App() {
           <Route path="/pdf-to-word" element={<DocumentConverter initialTab="pdf-to-word" />} />
           <Route path="/pdf-to-excel" element={<DocumentConverter initialTab="pdf-to-excel" />} />
           <Route path="/rotate-pdf" element={<Navigate to="/organize-pdf" replace />} />
-          <Route path="/compress-pdf" element={<Navigate to="/" replace />} />
+          <Route path="/compress-pdf" element={<CompressPdf />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

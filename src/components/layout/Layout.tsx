@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   Menu,
   Merge,
+  Minimize2,
   Moon,
   Scissors,
   Sun,
@@ -30,6 +31,7 @@ const PRIMARY_LINKS = [
   { path: '/front-page', label: 'Front Page', icon: GraduationCap },
   { path: '/merge-pdf', label: 'Merge PDF', icon: Merge },
   { path: '/split-pdf', label: 'Split PDF', icon: Scissors },
+  { path: '/compress-pdf', label: 'Compress', icon: Minimize2 },
   { path: '/convert', label: 'Convert', icon: ArrowRightLeft },
 ] as const;
 

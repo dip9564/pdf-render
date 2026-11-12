@@ -185,19 +185,19 @@ export function SaveProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <BookmarkPlus className="h-4 w-4 text-primary" />
-            Save Details as Profile
+      <DialogContent className="w-[calc(100%-1.5rem)] max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 rounded-xl sm:rounded-lg">
+        <DialogHeader className="text-left pr-6">
+          <DialogTitle className="flex items-center gap-2 text-base leading-snug">
+            <BookmarkPlus className="h-4 w-4 text-primary shrink-0" />
+            <span>Save Details as Profile</span>
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-xs leading-relaxed">
             Save your college and student details locally in browser storage for quick reuse later. Main Title and Assignment Title are excluded automatically.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
+        <form onSubmit={handleSubmit} className="space-y-4 min-w-0">
+          <div className="space-y-1.5 min-w-0">
             <Label htmlFor="fp-profile-name-input" className="text-xs font-semibold">
               Profile Name
             </Label>
@@ -213,60 +213,61 @@ export function SaveProfileDialog({
               maxLength={MAX_PROFILE_NAME_LENGTH}
               disabled={saving}
               autoComplete="off"
+              className="w-full min-w-0"
             />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               Examples: My KGEC Profile, Friend&apos;s Profile, Project Report Profile
             </p>
           </div>
 
           {duplicateProfile && (
-            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300">
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-300 min-w-0">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>
+              <span className="min-w-0 break-words leading-snug">
                 A profile named <strong className="font-semibold">&ldquo;{duplicateProfile.name}&rdquo;</strong> already exists. Enter a unique name to create a new profile, or click <strong className="font-semibold">Overwrite Existing</strong> to update it.
               </span>
             </div>
           )}
 
           {validationError && !duplicateProfile && (
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive">
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive min-w-0">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{validationError}</span>
+              <span className="min-w-0 break-words leading-snug">{validationError}</span>
             </div>
           )}
 
           {storageError && (
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive">
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 text-xs text-destructive min-w-0">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{storageError}</span>
+              <span className="min-w-0 break-words leading-snug">{storageError}</span>
             </div>
           )}
 
           {/* Snapshot Preview Box */}
-          <div className="rounded-lg border bg-muted/30 p-3 space-y-2 text-xs">
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2 text-xs min-w-0">
             <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground">
               Information Included
             </p>
-            <div className="space-y-1 text-[11px]">
-              <div className="flex items-center justify-between gap-2">
+            <div className="space-y-1.5 text-[11px] min-w-0">
+              <div className="flex items-start justify-between gap-2 min-w-0">
                 <span className="text-muted-foreground shrink-0">College:</span>
-                <span className="font-medium truncate text-right">
+                <span className="font-medium min-w-0 flex-1 text-right break-words leading-snug">
                   {summary.collegeName.trim() || (
                     <span className="italic text-muted-foreground">Empty</span>
                   )}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-start justify-between gap-2 min-w-0">
                 <span className="text-muted-foreground shrink-0">Logo &amp; Header:</span>
-                <span className="font-medium text-right">
+                <span className="font-medium min-w-0 flex-1 text-right break-words leading-snug">
                   {formatLogoModeLabel(summary.logoMode)}
                   {summary.logoMode === 'custom' && !summary.hasCustomLogo ? ' (no image)' : ''} ·{' '}
                   {summary.collegeFontSizePt}pt · Border {summary.borderMarginPt}pt
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-start justify-between gap-2 min-w-0">
                 <span className="text-muted-foreground shrink-0">Student:</span>
-                <span className="font-medium truncate text-right">
+                <span className="font-medium min-w-0 flex-1 text-right break-words leading-snug">
                   {summary.studentName.trim() || (
                     <span className="italic text-muted-foreground">Not specified</span>
                   )}{' '}
@@ -276,12 +277,13 @@ export function SaveProfileDialog({
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-2 sm:gap-2 sm:space-x-0">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={saving}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -290,30 +292,35 @@ export function SaveProfileDialog({
                 type="button"
                 onClick={handleOverwriteClick}
                 disabled={saving || !normalizedName}
+                className="w-full sm:w-auto"
               >
                 {saving ? (
                   <>
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Updating...
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" />
+                    <span>Updating...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="mr-1.5 h-3.5 w-3.5" />
-                    Overwrite Existing
+                    <Save className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                    <span>Overwrite Existing</span>
                   </>
                 )}
               </Button>
             ) : (
-              <Button type="submit" disabled={saving || !normalizedName}>
+              <Button
+                type="submit"
+                disabled={saving || !normalizedName}
+                className="w-full sm:w-auto"
+              >
                 {saving ? (
                   <>
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Saving...
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" />
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="mr-1.5 h-3.5 w-3.5" />
-                    Save Profile
+                    <Save className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                    <span>Save Profile</span>
                   </>
                 )}
               </Button>
@@ -567,10 +574,10 @@ export function SavedProfilesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 rounded-lg">
+      <DialogContent className="w-[calc(100%-1.5rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 rounded-xl sm:rounded-lg">
         {isEditView ? (
           <>
-            <DialogHeader>
+            <DialogHeader className="text-left">
               <div className="flex flex-wrap items-center justify-between gap-2 pr-6">
                 <div className="flex items-center gap-2">
                   <Button
@@ -1022,12 +1029,13 @@ export function SavedProfilesDialog({
                 </div>
               )}
 
-              <DialogFooter className="gap-2 sm:gap-0">
+              <DialogFooter className="gap-2 sm:gap-2 sm:space-x-0">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={cancelEdit}
                   disabled={savingEdit}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -1036,16 +1044,17 @@ export function SavedProfilesDialog({
                   disabled={
                     savingEdit || !normalizeProfileName(editName) || Boolean(editDuplicateMatch)
                   }
+                  className="w-full sm:w-auto"
                 >
                   {savingEdit ? (
                     <>
-                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                      Saving Changes...
+                      <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin shrink-0" />
+                      <span>Saving Changes...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="mr-1.5 h-3.5 w-3.5" />
-                      Save Changes
+                      <Check className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                      <span>Save Changes</span>
                     </>
                   )}
                 </Button>
@@ -1054,7 +1063,7 @@ export function SavedProfilesDialog({
           </>
         ) : (
           <>
-            <DialogHeader>
+            <DialogHeader className="text-left">
               <div className="flex flex-wrap items-center gap-2 pr-6">
                 <DialogTitle className="flex items-center gap-2 text-base">
                   <FolderOpen className="h-4 w-4 text-primary" />
@@ -1258,7 +1267,12 @@ export function SavedProfilesDialog({
             )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full sm:w-auto"
+              >
                 Close
               </Button>
             </DialogFooter>

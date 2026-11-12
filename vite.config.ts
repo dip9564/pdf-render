@@ -10,7 +10,10 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['pdfjs-dist'],
+    include: ['pdfjs-dist', '@neslinesli93/qpdf-wasm'],
+  },
+  worker: {
+    format: 'es',
   },
   build: {
     rollupOptions: {
