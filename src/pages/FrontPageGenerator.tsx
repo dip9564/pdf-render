@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
   GraduationCap,
@@ -26,9 +26,11 @@ import {
   ArrowLeft,
   Layers,
   Image as ImageIcon,
+  Hash,
 } from 'lucide-react';
 import kgecLogoUrl from '@/assets/kgec-logo.jpg';
 import { cn, formatFileSize, downloadBlob, createPdfBlob, readFileAsArrayBuffer } from '@/lib/utils';
+import { usePdfWorkflowTransfer } from '@/context/PdfWorkflowTransferContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -101,8 +103,20 @@ interface UploadedExistingPdf {
   info: ExistingPdfInfo;
 }
 
+interface CombinedPdfSnapshot {
+  signature: string;
+  logoRef: LogoImagePayload | null;
+  existingBufferRef: ArrayBuffer;
+  pdfBytes: Uint8Array;
+  totalPages: number;
+  originalPageCount: number;
+  outputName: string;
+}
+
 export default function FrontPageGenerator() {
   const { renderPage } = usePdfRenderer();
+  const navigate = useNavigate();
+  const { setTransferredPdf } = usePdfWorkflowTransfer();
 
   // Logo & Frame Settings
   const [logoMode, setLogoMode] = useState<LogoMode>('kgec');
@@ -159,6 +173,7 @@ export default function FrontPageGenerator() {
   } | null>(null);
   const [isDraggingExistingPdf, setIsDraggingExistingPdf] = useState<boolean>(false);
   const [mergingPdf, setMergingPdf] = useState<boolean>(false);
+  const [sendingToPageNumbers, setSendingToPageNumbers] = useState<boolean>(false);
 
   const formCardRef = useRef<HTMLDivElement>(null);
   const previewCardRef = useRef<HTMLDivElement>(null);
@@ -167,6 +182,7 @@ export default function FrontPageGenerator() {
   const existingPdfInputRef = useRef<HTMLInputElement>(null);
   const mergePanelRef = useRef<HTMLDivElement>(null);
   const previewRequestIdRef = useRef<number>(0);
+  const lastCombinedSnapshotRef = useRef<CombinedPdfSnapshot | null>(null);
 
   // Preload official local KGEC asset once on mount
   useEffect(() => {
@@ -467,6 +483,7 @@ export default function FrontPageGenerator() {
     setValidatingExistingPdf(true);
     setExistingPdfError(null);
     setExistingPdf(null);
+    lastCombinedSnapshotRef.current = null;
 
     try {
       const lower = file.name.toLowerCase();
@@ -499,13 +516,33 @@ export default function FrontPageGenerator() {
     }
   }, []);
 
-  // Option B: Merge Generated Front Page (as Page 1) with Existing PDF & Download
-  const handleMergeAndDownload = async () => {
+  const reportMergeError = (err: unknown) => {
+    if (err instanceof FrontPageError) {
+      if (
+        err.code === 'INVALID_PDF' ||
+        err.code === 'ENCRYPTED_PDF' ||
+        err.code === 'CORRUPTED_PDF' ||
+        err.code === 'PDF_MERGE_FAILED'
+      ) {
+        setExistingPdfError({ code: err.code, message: err.message });
+      } else {
+        setPreviewError(err.message);
+      }
+      toast.error(err.message);
+    } else {
+      const msg = 'Unexpected failure while merging the front page with your PDF.';
+      setExistingPdfError({ code: 'PDF_MERGE_FAILED', message: msg });
+      toast.error(msg);
+    }
+  };
+
+  // Shared helper: Builds (or reuses exact matching) combined PDF in memory without downloading
+  const prepareCombinedFrontPagePdf = async (): Promise<CombinedPdfSnapshot | null> => {
     if (!existingPdf) {
       const msg = 'Please upload an existing PDF document first.';
       setExistingPdfError({ code: 'INVALID_PDF', message: msg });
       toast.warning(msg);
-      return;
+      return null;
     }
 
     const config = buildCurrentConfig();
@@ -515,51 +552,112 @@ export default function FrontPageGenerator() {
       setCustomLogoError(msg);
       setPreviewError(msg);
       toast.error(msg);
-      return;
+      return null;
     }
 
+    if (config.logoMode === 'kgec' && !config.logo) {
+      const loaded = await loadLogoPayloadFromUrl(kgecLogoUrl, 'jpg');
+      setKgecLogoPayload(loaded);
+      config.logo = loaded;
+    }
+
+    const signature = JSON.stringify({
+      logoMode: config.logoMode,
+      logoPosition: config.logoPosition,
+      logoSizePt: config.logoSizePt,
+      collegeFontSizePt: config.collegeFontSizePt,
+      borderMarginPt: config.borderMarginPt,
+      details: config.details,
+      fileName: existingPdf.file.name,
+      fileSize: existingPdf.file.size,
+    });
+
+    const cached = lastCombinedSnapshotRef.current;
+    if (
+      cached &&
+      cached.signature === signature &&
+      cached.logoRef === (config.logo ?? null) &&
+      cached.existingBufferRef === existingPdf.buffer &&
+      cached.pdfBytes.byteLength > 0
+    ) {
+      return cached;
+    }
+
+    const freshFrontBytes = await generateFrontPagePdf(config);
+    const mergeResult = await mergeFrontPageWithPdf(
+      freshFrontBytes,
+      existingPdf.buffer,
+      existingPdf.file.name
+    );
+
+    if (!mergeResult.pdfBytes || mergeResult.pdfBytes.byteLength === 0) {
+      throw new FrontPageError(
+        'PDF_MERGE_FAILED',
+        'Generated combined PDF is empty. Please try again.'
+      );
+    }
+
+    const outputName = buildMergedPdfFilename(existingPdf.file.name);
+    const snapshot: CombinedPdfSnapshot = {
+      signature,
+      logoRef: config.logo ?? null,
+      existingBufferRef: existingPdf.buffer,
+      pdfBytes: mergeResult.pdfBytes,
+      totalPages: mergeResult.totalPages,
+      originalPageCount: mergeResult.originalPageCount,
+      outputName,
+    };
+    lastCombinedSnapshotRef.current = snapshot;
+    return snapshot;
+  };
+
+  // Option B: Merge Generated Front Page (as Page 1) with Existing PDF & Download
+  const handleMergeAndDownload = async () => {
     setMergingPdf(true);
     try {
-      if (config.logoMode === 'kgec' && !config.logo) {
-        const loaded = await loadLogoPayloadFromUrl(kgecLogoUrl, 'jpg');
-        setKgecLogoPayload(loaded);
-        config.logo = loaded;
-      }
+      const combined = await prepareCombinedFrontPagePdf();
+      if (!combined) return;
 
-      const freshFrontBytes = await generateFrontPagePdf(config);
-      const mergeResult = await mergeFrontPageWithPdf(
-        freshFrontBytes,
-        existingPdf.buffer,
-        existingPdf.file.name
-      );
-
-      const outputName = buildMergedPdfFilename(existingPdf.file.name);
-      downloadBlob(createPdfBlob(mergeResult.pdfBytes), outputName);
+      downloadBlob(createPdfBlob(combined.pdfBytes), combined.outputName);
 
       toast.success(
-        `Downloaded "${outputName}" (${mergeResult.totalPages} pages: Front Page + ${mergeResult.originalPageCount} original pages preserved)`
+        `Downloaded "${combined.outputName}" (${combined.totalPages} pages: Front Page + ${combined.originalPageCount} original pages preserved)`
       );
     } catch (err) {
-      if (err instanceof FrontPageError) {
-        if (
-          err.code === 'INVALID_PDF' ||
-          err.code === 'ENCRYPTED_PDF' ||
-          err.code === 'CORRUPTED_PDF' ||
-          err.code === 'PDF_MERGE_FAILED'
-        ) {
-          setExistingPdfError({ code: err.code, message: err.message });
-        } else {
-          setPreviewError(err.message);
-        }
-        toast.error(err.message);
-      } else {
-        const msg = 'Unexpected failure while merging the front page with your PDF.';
-        setExistingPdfError({ code: 'PDF_MERGE_FAILED', message: msg });
-        toast.error(msg);
-      }
+      reportMergeError(err);
       console.error('Merge front page failed:', err);
     } finally {
       setMergingPdf(false);
+    }
+  };
+
+  // Option B Secondary Action: Transfer Combined PDF Directly to Add Page Numbers Tool
+  const handleSendToPageNumbers = async () => {
+    setSendingToPageNumbers(true);
+    try {
+      const combined = await prepareCombinedFrontPagePdf();
+      if (!combined) return;
+
+      const combinedBlob = createPdfBlob(combined.pdfBytes);
+      const combinedFile = new File([combinedBlob], combined.outputName, {
+        type: 'application/pdf',
+        lastModified: Date.now(),
+      });
+
+      setTransferredPdf({
+        source: 'front-page',
+        target: 'page-numbers',
+        file: combinedFile,
+        pageCount: combined.totalPages,
+        originalPageCount: combined.originalPageCount,
+      });
+
+      navigate('/page-numbers?source=front-page');
+    } catch (err) {
+      reportMergeError(err);
+      console.error('Transfer combined PDF to Add Page Numbers failed:', err);
+    } finally {
+      setSendingToPageNumbers(false);
     }
   };
 
@@ -1771,7 +1869,7 @@ export default function FrontPageGenerator() {
                                 size="sm"
                                 className="h-7 text-xs px-2"
                                 onClick={() => existingPdfInputRef.current?.click()}
-                                disabled={mergingPdf}
+                                disabled={mergingPdf || sendingToPageNumbers}
                               >
                                 Change
                               </Button>
@@ -1783,8 +1881,9 @@ export default function FrontPageGenerator() {
                                 onClick={() => {
                                   setExistingPdf(null);
                                   setExistingPdfError(null);
+                                  lastCombinedSnapshotRef.current = null;
                                 }}
-                                disabled={mergingPdf}
+                                disabled={mergingPdf || sendingToPageNumbers}
                                 title="Remove PDF"
                               >
                                 <X className="h-3.5 w-3.5" />
@@ -1823,33 +1922,58 @@ export default function FrontPageGenerator() {
                           )}
                         </div>
 
-                        {/* Merge & Download CTA */}
-                        <Button
-                          type="button"
-                          size="lg"
-                          onClick={handleMergeAndDownload}
-                          disabled={mergingPdf || generatingPreview}
-                          className="w-full max-w-full min-w-0 box-border h-auto min-h-11 px-3 sm:px-6 py-2.5 sm:py-3 whitespace-normal break-words text-center font-semibold text-[13px] max-[399px]:text-xs sm:text-sm leading-snug gap-2"
-                        >
-                          {mergingPdf ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-                              <span className="min-w-0">
-                                Adding Front Page &amp; Building Final PDF...
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <Download className="h-4 w-4 shrink-0" />
-                              <span className="min-w-0">
-                                Add Front Page as Page 1 &amp; Download{' '}
-                                <span className="whitespace-nowrap">
-                                  ({existingPdf.info.pageCount + 1} Pages)
+                        {/* Merge & Download Primary CTA + Secondary Outlined "Add Page Numbers" Action */}
+                        <div className="space-y-2.5">
+                          <Button
+                            type="button"
+                            size="lg"
+                            onClick={handleMergeAndDownload}
+                            disabled={mergingPdf || sendingToPageNumbers || generatingPreview}
+                            className="w-full max-w-full min-w-0 box-border h-auto min-h-11 px-3 sm:px-6 py-2.5 sm:py-3 whitespace-normal break-words text-center font-semibold text-[13px] max-[399px]:text-xs sm:text-sm leading-snug gap-2"
+                          >
+                            {mergingPdf ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                                <span className="min-w-0">
+                                  Adding Front Page &amp; Building Final PDF...
                                 </span>
-                              </span>
-                            </>
-                          )}
-                        </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4 shrink-0" />
+                                <span className="min-w-0">
+                                  Add Front Page as Page 1 &amp; Download{' '}
+                                  <span className="whitespace-nowrap">
+                                    ({existingPdf.info.pageCount + 1} Pages)
+                                  </span>
+                                </span>
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="lg"
+                            onClick={handleSendToPageNumbers}
+                            disabled={mergingPdf || sendingToPageNumbers || generatingPreview}
+                            className="w-full max-w-full min-w-0 box-border h-auto min-h-10 px-3 sm:px-6 py-2 sm:py-2.5 whitespace-normal break-words text-center font-medium text-[13px] max-[399px]:text-xs sm:text-sm leading-snug gap-2 border-primary/40 text-foreground hover:bg-primary/5 hover:text-foreground hover:border-primary/60 dark:hover:bg-primary/10"
+                          >
+                            {sendingToPageNumbers ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin shrink-0 text-primary" />
+                                <span className="min-w-0">
+                                  Preparing Combined PDF for Page Numbers...
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <Hash className="h-4 w-4 shrink-0 text-primary" />
+                                <span className="min-w-0">Add Page Numbers</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     )}
 

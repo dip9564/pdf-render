@@ -3,6 +3,7 @@ import { Layout } from '@/components/layout/Layout';
 import { lazy, Suspense, useEffect } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import { BrandLogo } from '@/components/shared/BrandLogo';
+import { PdfWorkflowTransferProvider } from '@/context/PdfWorkflowTransferContext';
 
 const HomePage = lazy(() => import('@/pages/HomePage'));
 const ImageToPdf = lazy(() => import('@/pages/ImageToPdf'));
@@ -56,32 +57,34 @@ export default function App() {
   }, [navigate]);
 
   return (
-    <Layout>
-      <Suspense fallback={<PageLoading />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/image-to-pdf" element={<ImageToPdf />} />
-          <Route path="/image-editor" element={<ImageEditor />} />
-          <Route path="/merge-pdf" element={<MergePdf />} />
-          <Route path="/split-pdf" element={<SplitPdf />} />
-          <Route path="/organize-pdf" element={<OrganizePdf />} />
-          <Route path="/pdf-to-images" element={<PdfToImages />} />
-          <Route path="/watermark" element={<Watermark />} />
-          <Route path="/annotate" element={<AnnotatePdf />} />
-          <Route path="/metadata" element={<MetadataEditor />} />
-          <Route path="/page-numbers" element={<PageNumbers />} />
-          <Route path="/protect-pdf" element={<ProtectPdf />} />
-          <Route path="/extract-text" element={<ExtractText />} />
-          <Route path="/convert" element={<DocumentConverter />} />
-          <Route path="/front-page" element={<FrontPageGenerator />} />
-          <Route path="/word-to-pdf" element={<DocumentConverter initialTab="word-to-pdf" />} />
-          <Route path="/pdf-to-word" element={<DocumentConverter initialTab="pdf-to-word" />} />
-          <Route path="/pdf-to-excel" element={<DocumentConverter initialTab="pdf-to-excel" />} />
-          <Route path="/rotate-pdf" element={<Navigate to="/organize-pdf" replace />} />
-          <Route path="/compress-pdf" element={<CompressPdf />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </Layout>
+    <PdfWorkflowTransferProvider>
+      <Layout>
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/image-to-pdf" element={<ImageToPdf />} />
+            <Route path="/image-editor" element={<ImageEditor />} />
+            <Route path="/merge-pdf" element={<MergePdf />} />
+            <Route path="/split-pdf" element={<SplitPdf />} />
+            <Route path="/organize-pdf" element={<OrganizePdf />} />
+            <Route path="/pdf-to-images" element={<PdfToImages />} />
+            <Route path="/watermark" element={<Watermark />} />
+            <Route path="/annotate" element={<AnnotatePdf />} />
+            <Route path="/metadata" element={<MetadataEditor />} />
+            <Route path="/page-numbers" element={<PageNumbers />} />
+            <Route path="/protect-pdf" element={<ProtectPdf />} />
+            <Route path="/extract-text" element={<ExtractText />} />
+            <Route path="/convert" element={<DocumentConverter />} />
+            <Route path="/front-page" element={<FrontPageGenerator />} />
+            <Route path="/word-to-pdf" element={<DocumentConverter initialTab="word-to-pdf" />} />
+            <Route path="/pdf-to-word" element={<DocumentConverter initialTab="pdf-to-word" />} />
+            <Route path="/pdf-to-excel" element={<DocumentConverter initialTab="pdf-to-excel" />} />
+            <Route path="/rotate-pdf" element={<Navigate to="/organize-pdf" replace />} />
+            <Route path="/compress-pdf" element={<CompressPdf />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </Layout>
+    </PdfWorkflowTransferProvider>
   );
 }

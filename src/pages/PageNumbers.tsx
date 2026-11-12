@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   PDFDocument,
   rgb,
@@ -11,10 +12,13 @@ import {
   RefreshCw,
   Eye,
   Sliders,
-  Type,
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlertCircle,
+  ArrowLeft,
+  X,
+  FileText,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,9 +36,9 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { FileUploader } from '@/components/shared/FileUploader';
 import { usePdfRenderer } from '@/components/shared/PdfRenderer';
-import { readFileAsArrayBuffer, createPdfBlob, downloadBlob, formatFileSize } from '@/lib/utils';
+import { readFileAsArrayBuffer, createPdfBlob, downloadBlob, formatFileSize, cn } from '@/lib/utils';
+import { usePdfWorkflowTransfer } from '@/context/PdfWorkflowTransferContext';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 type Position = 'bottom-center' | 'bottom-right' | 'bottom-left' | 'top-center' | 'top-right' | 'top-left';
 type FormatPreset = 'page_of_total' | 'n_slash_total' | 'n_only' | 'dash_n_dash' | 'custom';
@@ -64,36 +68,142 @@ export default function PageNumbers() {
   const [mobileTab, setMobileTab] = useState<'format' | 'style'>('format');
 
   const { renderPage, getPageCount } = usePdfRenderer();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { transferredPdf, clearTransferredPdf } = usePdfWorkflowTransfer();
+
+  const [frontPageSourceMeta, setFrontPageSourceMeta] = useState<{
+    originalPageCount: number;
+    totalPages: number;
+  } | null>(null);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [missingTransferBannerDismissed, setMissingTransferBannerDismissed] =
+    useState<boolean>(false);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const desktopCanvasRef = useRef<HTMLCanvasElement>(null);
+  const inFlightTransferIdRef = useRef<string | null>(null);
+  const completedTransferIdRef = useRef<string | null>(null);
+
+  const isFromFrontPageQuery = searchParams.get('source') === 'front-page';
+
+  const loadPdfFile = useCallback(
+    async (
+      selectedFile: File,
+      options?: {
+        fromFrontPage?: { originalPageCount: number };
+        isCancelled?: () => boolean;
+      }
+    ): Promise<boolean> => {
+      setFile(selectedFile);
+      setLoading(true);
+      setTransferError(null);
+      setMissingTransferBannerDismissed(true);
+
+      try {
+        const buffer = await readFileAsArrayBuffer(selectedFile);
+        if (options?.isCancelled?.()) return false;
+
+        const count = await getPageCount(new Uint8Array(buffer.slice(0)));
+        if (options?.isCancelled?.()) return false;
+
+        const preview = await renderPage(new Uint8Array(buffer.slice(0)), 1, 1.0);
+        if (options?.isCancelled?.()) return false;
+
+        setPdfData(buffer);
+        setPageCount(count);
+        setPreviewPageNumber(1);
+        setFirstPagePreview(preview);
+
+        if (options?.fromFrontPage) {
+          setFrontPageSourceMeta({
+            originalPageCount: options.fromFrontPage.originalPageCount,
+            totalPages: count,
+          });
+          toast.success(`Combined PDF "${selectedFile.name}" (${count} pages) loaded`);
+        } else {
+          setFrontPageSourceMeta(null);
+          clearTransferredPdf();
+          setSearchParams(
+            (prev) => {
+              if (!prev.has('source')) return prev;
+              const next = new URLSearchParams(prev);
+              next.delete('source');
+              return next;
+            },
+            { replace: true }
+          );
+          toast.success(`Loaded "${selectedFile.name}" (${count} pages)`);
+        }
+        return true;
+      } catch (err) {
+        if (options?.isCancelled?.()) return false;
+        console.error('Failed to load PDF', err);
+        const msg = options?.fromFrontPage
+          ? `Could not preload "${selectedFile.name}" from Front Page Generator. Please upload a PDF manually or rebuild it.`
+          : 'Failed to parse document';
+        toast.error(msg);
+        if (options?.fromFrontPage) {
+          setTransferError(msg);
+          clearTransferredPdf();
+        }
+        setFile(null);
+        setPdfData(null);
+        setPageCount(0);
+        setFirstPagePreview(null);
+        setFrontPageSourceMeta(null);
+        return false;
+      } finally {
+        if (!options?.isCancelled?.()) {
+          setLoading(false);
+        }
+      }
+    },
+    [getPageCount, renderPage, clearTransferredPdf, setSearchParams]
+  );
+
+  // Automatically preload combined PDF when transferred from Front Page Generator
+  useEffect(() => {
+    if (!transferredPdf || transferredPdf.target !== 'page-numbers') return;
+    if (
+      completedTransferIdRef.current === transferredPdf.id ||
+      inFlightTransferIdRef.current === transferredPdf.id
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    const transfer = transferredPdf;
+    inFlightTransferIdRef.current = transfer.id;
+    window.scrollTo({ top: 0, behavior: 'auto' });
+
+    void loadPdfFile(transfer.file, {
+      fromFrontPage: { originalPageCount: transfer.originalPageCount },
+      isCancelled: () => cancelled,
+    }).then((loaded) => {
+      if (!cancelled) {
+        inFlightTransferIdRef.current = null;
+        if (loaded) {
+          completedTransferIdRef.current = transfer.id;
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      if (inFlightTransferIdRef.current === transfer.id) {
+        inFlightTransferIdRef.current = null;
+      }
+    };
+  }, [transferredPdf, loadPdfFile]);
 
   const handleFileSelected = useCallback(
     async (files: File[]) => {
       if (files.length === 0) return;
-      const selectedFile = files[0];
-      setFile(selectedFile);
-      setLoading(true);
-
-      try {
-        const buffer = await readFileAsArrayBuffer(selectedFile);
-        setPdfData(buffer);
-        const count = await getPageCount(new Uint8Array(buffer.slice(0)));
-        setPageCount(count);
-        setPreviewPageNumber(1);
-
-        const preview = await renderPage(new Uint8Array(buffer.slice(0)), 1, 1.0);
-        setFirstPagePreview(preview);
-        toast.success(`Loaded "${selectedFile.name}" (${count} pages)`);
-      } catch (err) {
-        console.error('Failed to load PDF', err);
-        toast.error('Failed to parse document');
-        setFile(null);
-        setPdfData(null);
-      } finally {
-        setLoading(false);
-      }
+      completedTransferIdRef.current = null;
+      inFlightTransferIdRef.current = null;
+      await loadPdfFile(files[0]);
     },
-    [getPageCount, renderPage]
+    [loadPdfFile]
   );
 
   // Helper to load image
@@ -135,7 +245,7 @@ export default function PageNumbers() {
 
   // Render live preview on canvas
   useEffect(() => {
-    if (!firstPagePreview) return;
+    if (loading || !firstPagePreview) return;
     let isCancelled = false;
 
     const render = async () => {
@@ -227,6 +337,7 @@ export default function PageNumbers() {
     fontSize,
     fontColor,
     margin,
+    loading,
     getFormattedNumberString,
   ]);
 
@@ -319,12 +430,46 @@ export default function PageNumbers() {
     }
   };
 
+  const clearSourceQueryParam = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        if (!prev.has('source')) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete('source');
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
   const handleReset = () => {
+    completedTransferIdRef.current = null;
+    inFlightTransferIdRef.current = null;
     setFile(null);
     setPdfData(null);
+    setPageCount(0);
+    setPreviewPageNumber(1);
     setFirstPagePreview(null);
     setSkipPagesCount(0);
+    setStartNumber(1);
+    setFrontPageSourceMeta(null);
+    setTransferError(null);
+    setMissingTransferBannerDismissed(true);
+    clearTransferredPdf();
+    clearSourceQueryParam();
   };
+
+  const handleDismissMissingTransferBanner = () => {
+    setTransferError(null);
+    setMissingTransferBannerDismissed(true);
+    clearSourceQueryParam();
+  };
+
+  const showMissingTransferAlert =
+    !file &&
+    !loading &&
+    !transferredPdf &&
+    (Boolean(transferError) || (isFromFrontPageQuery && !missingTransferBannerDismissed));
 
   // Render live preview card
   const renderPreviewCard = (isMobile: boolean) => (
@@ -392,71 +537,191 @@ export default function PageNumbers() {
   );
 
   // Position & Format controls
-  const renderFormatControls = () => (
-    <div className="space-y-4">
-      {/* Position Grid */}
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Position on Page</Label>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { id: 'top-left', label: 'Top Left', icon: AlignLeft },
-            { id: 'top-center', label: 'Top Center', icon: AlignCenter },
-            { id: 'top-right', label: 'Top Right', icon: AlignRight },
-            { id: 'bottom-left', label: 'Bottom Left', icon: AlignLeft },
-            { id: 'bottom-center', label: 'Bottom Center', icon: AlignCenter },
-            { id: 'bottom-right', label: 'Bottom Right', icon: AlignRight },
-          ].map((pos) => {
-            const isSelected = position === pos.id;
-            return (
+  const renderFormatControls = () => {
+    const sampleTotal = Math.max(1, pageCount - skipPagesCount);
+
+    return (
+      <div className="space-y-4">
+        {/* Front Page Combined Workflow Options (synced to skipPagesCount & startNumber) */}
+        {frontPageSourceMeta && (
+          <div className="p-3 rounded-lg border border-primary/30 bg-primary/[0.04] space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="text-xs font-semibold">Front Page Numbering Rule</span>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">
+                Page 1: Cover + {frontPageSourceMeta.originalPageCount} Original
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               <button
-                key={pos.id}
                 type="button"
-                onClick={() => setPosition(pos.id as Position)}
+                onClick={() => setSkipPagesCount(0)}
                 className={cn(
-                  'flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all touch-manipulation',
-                  isSelected
+                  'flex flex-col items-start text-left p-2 rounded-lg border text-xs transition-all touch-manipulation',
+                  skipPagesCount === 0
                     ? 'border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30'
-                    : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
+                    : 'border-border bg-card hover:bg-muted/50 text-foreground'
                 )}
               >
-                <pos.icon className="h-4 w-4 mb-1" />
-                <span className="text-[11px]">{pos.label}</span>
+                <span>Include Front Page</span>
+                <span className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                  Starts numbering on Page 1
+                </span>
               </button>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Preset Formats */}
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Numbering Format</Label>
-        <Select value={formatPreset} onValueChange={(v) => setFormatPreset(v as FormatPreset)}>
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Select format" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="page_of_total">Page 1 of {pageCount} (Recommended)</SelectItem>
-            <SelectItem value="n_slash_total">1 / {pageCount}</SelectItem>
-            <SelectItem value="n_only">1 (Number only)</SelectItem>
-            <SelectItem value="dash_n_dash">- 1 -</SelectItem>
-            <SelectItem value="custom">Custom Format Template</SelectItem>
-          </SelectContent>
-        </Select>
+              <button
+                type="button"
+                onClick={() => setSkipPagesCount(pageCount > 1 ? 1 : 0)}
+                disabled={pageCount <= 1}
+                className={cn(
+                  'flex flex-col items-start text-left p-2 rounded-lg border text-xs transition-all touch-manipulation',
+                  skipPagesCount === 1
+                    ? 'border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30'
+                    : 'border-border bg-card hover:bg-muted/50 text-foreground'
+                )}
+              >
+                <span>Start from Original Page 1</span>
+                <span className="text-[10px] font-normal text-muted-foreground mt-0.5">
+                  Skips Front Page, starts on Page 2
+                </span>
+              </button>
+            </div>
 
-        {formatPreset === 'custom' && (
-          <div className="pt-1.5 space-y-1">
-            <Label className="text-[11px] text-muted-foreground">
-              Use {'{n}'} for page number and {'{total}'} for total pages:
-            </Label>
-            <Input
-              value={customFormat}
-              onChange={(e) => setCustomFormat(e.target.value)}
-              placeholder="e.g. Doc Page {n} of {total}"
-              className="h-8 text-xs font-mono"
-            />
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-border/60">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="fp-pn-start-num" className="text-[11px] text-muted-foreground">
+                  Starting Number:
+                </Label>
+                <Input
+                  id="fp-pn-start-num"
+                  type="number"
+                  min={1}
+                  value={startNumber}
+                  onChange={(e) => setStartNumber(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="h-7 w-16 text-xs text-center font-semibold"
+                />
+              </div>
+
+              {pageCount >= 2 && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant={previewPageNumber === 1 ? 'secondary' : 'outline'}
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => handlePreviewPageChange(1)}
+                  >
+                    Page 1 (Cover)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={previewPageNumber === 2 ? 'secondary' : 'outline'}
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => handlePreviewPageChange(2)}
+                  >
+                    Page 2 (Original)
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] text-muted-foreground leading-snug">
+              {skipPagesCount === 0 ? (
+                <>
+                  Page 1 starts at <span className="font-semibold text-foreground">{startNumber}</span>
+                  {' · '}
+                  Sample: <span className="font-medium text-foreground">{getFormattedNumberString(0) || '—'}</span>
+                </>
+              ) : (
+                <>
+                  First {skipPagesCount} {skipPagesCount === 1 ? 'page (Front Page)' : 'pages'} unnumbered
+                  {pageCount > skipPagesCount ? (
+                    <>
+                      {' · '}Page {skipPagesCount + 1} starts at{' '}
+                      <span className="font-semibold text-foreground">{startNumber}</span>
+                      {' · '}Sample:{' '}
+                      <span className="font-medium text-foreground">
+                        {getFormattedNumberString(skipPagesCount) || '—'}
+                      </span>
+                    </>
+                  ) : null}
+                </>
+              )}
+            </p>
           </div>
         )}
-      </div>
+
+        {/* Position Grid */}
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold">Position on Page</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 'top-left', label: 'Top Left', icon: AlignLeft },
+              { id: 'top-center', label: 'Top Center', icon: AlignCenter },
+              { id: 'top-right', label: 'Top Right', icon: AlignRight },
+              { id: 'bottom-left', label: 'Bottom Left', icon: AlignLeft },
+              { id: 'bottom-center', label: 'Bottom Center', icon: AlignCenter },
+              { id: 'bottom-right', label: 'Bottom Right', icon: AlignRight },
+            ].map((pos) => {
+              const isSelected = position === pos.id;
+              return (
+                <button
+                  key={pos.id}
+                  type="button"
+                  onClick={() => setPosition(pos.id as Position)}
+                  className={cn(
+                    'flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all touch-manipulation',
+                    isSelected
+                      ? 'border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30'
+                      : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
+                  )}
+                >
+                  <pos.icon className="h-4 w-4 mb-1" />
+                  <span className="text-[11px]">{pos.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Preset Formats */}
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold">Numbering Format</Label>
+          <Select value={formatPreset} onValueChange={(v) => setFormatPreset(v as FormatPreset)}>
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue placeholder="Select format" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="page_of_total">
+                Page {startNumber} of {sampleTotal} (Recommended)
+              </SelectItem>
+              <SelectItem value="n_slash_total">
+                {startNumber} / {sampleTotal}
+              </SelectItem>
+              <SelectItem value="n_only">{startNumber} (Number only)</SelectItem>
+              <SelectItem value="dash_n_dash">- {startNumber} -</SelectItem>
+              <SelectItem value="custom">Custom Format Template</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {formatPreset === 'custom' && (
+            <div className="pt-1.5 space-y-1">
+              <Label className="text-[11px] text-muted-foreground">
+                Use {'{n}'} for page number and {'{total}'} for total pages:
+              </Label>
+              <Input
+                value={customFormat}
+                onChange={(e) => setCustomFormat(e.target.value)}
+                placeholder="e.g. Doc Page {n} of {total}"
+                className="h-8 text-xs font-mono"
+              />
+            </div>
+          )}
+        </div>
 
       {/* Skip Initial Pages (Cover / Intro) */}
       <div className="p-3 rounded-lg border bg-muted/20 space-y-2.5">
@@ -522,9 +787,10 @@ export default function PageNumbers() {
             </p>
           </div>
         )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Style & Typography controls
   const renderStyleControls = () => (
@@ -608,7 +874,12 @@ export default function PageNumbers() {
   );
 
   return (
-    <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-5xl">
+    <div
+      className={cn(
+        'container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-5xl',
+        file && 'pb-24 lg:pb-8'
+      )}
+    >
       <div className="mb-4 sm:mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
@@ -622,36 +893,94 @@ export default function PageNumbers() {
       </div>
 
       {!file ? (
-        <Card>
-          <CardContent className="p-5 sm:p-7">
-            <FileUploader
-              accept=".pdf,application/pdf"
-              multiple={false}
-              onFilesSelected={handleFileSelected}
-              label="Select or drop a PDF document"
-              description="Add headers, footers, and page numbers with live preview"
-            />
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          {showMissingTransferAlert && (
+            <div
+              role="alert"
+              className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 sm:p-4 text-xs sm:text-sm text-amber-800 dark:text-amber-200 flex items-start gap-3"
+            >
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <p className="font-semibold leading-snug">
+                  {transferError
+                    ? 'Transferred combined PDF could not be loaded'
+                    : 'Transferred PDF is no longer available after page refresh'}
+                </p>
+                <p className="text-xs leading-relaxed opacity-90">
+                  {transferError
+                    ? transferError
+                    : 'Combined front-page PDFs are transferred in memory for privacy and are cleared when the browser page reloads. Return to Front Page Generator to send it again, or upload a PDF manually below.'}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                  <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5 border-amber-500/40 bg-card hover:bg-muted">
+                    <Link to="/front-page">
+                      <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+                      <span>Back to Front Page Generator</span>
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs px-2.5"
+                    onClick={handleDismissMissingTransferBanner}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissMissingTransferBanner}
+                className="p-1 rounded-md opacity-70 hover:opacity-100 shrink-0"
+                aria-label="Dismiss message"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          <Card>
+            <CardContent className="p-5 sm:p-7">
+              <FileUploader
+                accept=".pdf,application/pdf"
+                multiple={false}
+                onFilesSelected={handleFileSelected}
+                label="Select or drop a PDF document"
+                description="Add headers, footers, and page numbers with live preview"
+              />
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <div className="space-y-4">
           {/* File details banner */}
-          <div className="flex items-center justify-between pb-2 border-b">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="w-7 h-7 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
                 PDF
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold truncate max-w-[200px] sm:max-w-md">{file.name}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                  <p className="text-xs font-semibold truncate max-w-[210px] sm:max-w-md">{file.name}</p>
+                  {frontPageSourceMeta && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 shrink-0">
+                      Front Page Combined
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-[10px] text-muted-foreground">
-                  {pageCount} {pageCount === 1 ? 'page' : 'pages'} • {formatFileSize(file.size)}
+                  {loading && pageCount === 0
+                    ? 'Analyzing pages...'
+                    : `${pageCount} ${pageCount === 1 ? 'page' : 'pages'}`}{' '}
+                  • {formatFileSize(file.size)}
                 </p>
               </div>
             </div>
             <Button
               variant="outline"
               size="sm"
-              className="h-6 text-[11px] px-2"
+              className="h-6 text-[11px] px-2 shrink-0"
               onClick={handleReset}
               disabled={loading || processing}
             >
@@ -677,7 +1006,7 @@ export default function PageNumbers() {
                 )}
               >
                 <Hash className="h-3.5 w-3.5 text-primary" />
-                Position & Format
+                Position &amp; Format
               </button>
               <button
                 type="button"
@@ -690,7 +1019,7 @@ export default function PageNumbers() {
                 )}
               >
                 <Sliders className="h-3.5 w-3.5 text-primary" />
-                Style & Font
+                Style &amp; Font
               </button>
             </div>
 
@@ -705,11 +1034,15 @@ export default function PageNumbers() {
             <div className="fixed bottom-4 left-3 right-3 z-40">
               <div className="bg-card/95 backdrop-blur-md border border-primary/35 rounded-xl p-2.5 shadow-xl flex items-center justify-between gap-2">
                 <div className="text-xs font-semibold pl-1">
-                  <span>{pageCount} Pages Numbered</span>
+                  <span>
+                    {skipPagesCount > 0
+                      ? `${Math.max(0, pageCount - skipPagesCount)} of ${pageCount} Pages`
+                      : `${pageCount} Pages Numbered`}
+                  </span>
                 </div>
                 <Button
                   onClick={handleAddPageNumbers}
-                  disabled={processing}
+                  disabled={loading || processing}
                   size="sm"
                   className="text-xs h-8 px-3 shadow-xs"
                 >
@@ -718,7 +1051,7 @@ export default function PageNumbers() {
                   ) : (
                     <Download className="h-3.5 w-3.5 mr-1" />
                   )}
-                  Save & Download
+                  Save &amp; Download
                 </Button>
               </div>
             </div>
@@ -729,7 +1062,7 @@ export default function PageNumbers() {
             <div className="lg:col-span-7 space-y-4">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Numbering & Placement</CardTitle>
+                  <CardTitle className="text-base">Numbering &amp; Placement</CardTitle>
                   <CardDescription className="text-xs">
                     Configure positions, numbering formats, and cover page behavior.
                   </CardDescription>
@@ -741,7 +1074,7 @@ export default function PageNumbers() {
 
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Typography & Styling</CardTitle>
+                  <CardTitle className="text-base">Typography &amp; Styling</CardTitle>
                   <CardDescription className="text-xs">
                     Customize font family, size, color, and margins.
                   </CardDescription>
@@ -751,7 +1084,7 @@ export default function PageNumbers() {
                   <div className="pt-2 border-t">
                     <Button
                       onClick={handleAddPageNumbers}
-                      disabled={processing}
+                      disabled={loading || processing}
                       className="w-full"
                     >
                       {processing ? (
@@ -759,7 +1092,7 @@ export default function PageNumbers() {
                       ) : (
                         <Download className="h-4 w-4 mr-2" />
                       )}
-                      Apply Page Numbers & Download PDF
+                      Apply Page Numbers &amp; Download PDF
                     </Button>
                   </div>
                 </CardContent>

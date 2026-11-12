@@ -117,7 +117,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-header/90 backdrop-blur-md supports-[backdrop-filter]:bg-header/80">
-      <div className="container mx-auto max-w-7xl flex h-14 sm:h-[60px] items-center justify-between gap-4 px-3.5 sm:px-6">
+      <div className="w-full flex h-14 sm:h-[60px] items-center justify-between gap-4 pl-3.5 sm:pl-6 pr-3.5 sm:pr-[max(1.5rem,calc((100%_-_80rem)_/_2_+_1.5rem))]">
         {/* Left: Brand Logo */}
         <div className="flex items-center gap-5 lg:gap-7 min-w-0">
           <Link
@@ -374,7 +374,7 @@ export function Footer() {
           </span>
           <span className="hidden sm:inline text-muted-foreground/40">•</span>
           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-secondary dark:bg-secondary border border-border text-foreground/85">
-            v1.3.2
+            v1.3.3
           </span>
           <span className="hidden sm:inline text-muted-foreground/40">•</span>
           <span>100% Client-Side &amp; Private</span>
