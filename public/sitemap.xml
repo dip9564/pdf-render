@@ -1,0 +1,37 @@
+
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/</loc>
+  </url>
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/front-page</loc>
+  </url>
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/merge-pdf</loc>
+  </url>
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/split-pdf</loc>
+  </url>
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/compress-pdf</loc>
+  </url>
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/page-numbers</loc>
+  </url>
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/convert</loc>
+  </url>
+
+  <url>
+    <loc>https://pdf-render.dipmondaldev.me/watermark</loc>
+  </url>
+
+</urlset>
